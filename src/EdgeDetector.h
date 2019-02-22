@@ -13,11 +13,12 @@ protected:
 public:
 	EdgeDetector() {};
 	~EdgeDetector() {};
+	cv::Mat findEdges(cv::Mat image);
 	cv::Mat grayScaleToDouble(cv::Mat image);
 	cv::Mat filterImage(cv::Mat image, cv::Mat filter);
 	cv::Mat gradient(cv::Mat image);
 	cv::Mat erode(cv::Mat image);
-	float sumPixels(cv::Mat image);
+	cv::Vec3b sumPixels(cv::Mat image);
 	cv::Mat threshold(cv::Mat image, double value);
-	cv::Mat threshold(cv::Mat image, double H, double S, double V);
+	cv::Mat thresholdHSV(cv::Mat image, cv::Mat hsv);
 };

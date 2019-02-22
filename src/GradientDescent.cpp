@@ -5,26 +5,23 @@
 
 #include "EdgeDetector.h"
 
-cv::Mat gradientDescent(cv::Mat frame, float learningRate)
+cv::Mat gradientDescent(cv::Mat frame, float learningRate=1.0f)
 {
-	// input is edgemap of thresholded frame using estimate
-	// target is edgemap of frame
-	// find difference in HSV tensor
-	// subtract difference from current estimate
-	// if difference too small return estimate
 	EdgeDetector ed;
 	cv::Mat estimate; // TODO random init
 	cv::Mat gradient, minGradient; // TODO set minimum gradient
 	int iter, maxIter = 100;
-	while (gradient < minGradient && iter < maxIter)
+	while (gradient < minGradient && iter < maxIter) // TODO convergence criteria
 	{
 		// Current estimate
-		cv::Mat thresh = ed.thresholdHSV(frame, estimate.H, estimate.S, estimate.V);
+		cv::Mat thresh = ed.thresholdHSV(frame, estimate);
 		cv::Mat estimEdges = ed.findEdges(thresh);
-		// Target
+
+		// Get error
 		cv::Mat targetEdges = ed.findEdges(frame);
-		// Error
 		cv::Mat error = targetEdges - estimEdges;
+
+		// update estimate
 		gradient = ed.sumPixels(error);
 		estimate += gradient * learningRate;
 	}
