@@ -8,12 +8,11 @@
 
 inline bool belowMinimum(const cv::Vec3f a, const cv::Vec3f b) { return a[0] < b[0] && a[1] < b[1] && a[2] < b[2]; }
 
-cv::Vec3b gradientDescent(cv::Mat frame, float learningRate=0.1f, int maxIter=1000)
+cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate=0.1f, int maxIter=1000)
 {
 	printf("Starting gradient descent...\nlearning rate: %.3f\nmax iterations: %i\n", learningRate, maxIter);
 	int pixelCount = frame.size[0] * frame.size[1];
 	srand(time(NULL));
-	EdgeDetector ed;
 	cv::Vec3b estimate = cv::Vec3b({ rand() % 256, rand() % 256, rand() % 256 });
 	cv::Vec3f gradient, minGradient = cv::Vec3f({ 3.0f, 3.0f, 3.0f });
 	cv::Mat thresh, estimEdges, targetEdges;
@@ -22,15 +21,15 @@ cv::Vec3b gradientDescent(cv::Mat frame, float learningRate=0.1f, int maxIter=10
 	while (belowMinimum(gradient, minGradient) && iter < maxIter)
 	{
 		// Current estimate
-		cv::Mat thresh = ed.thresholdHSV(frame, estimate);
-		cv::Mat estimEdges = ed.findEdges(thresh);
+		cv::Mat thresh = ed->thresholdHSV(frame, estimate);
+		cv::Mat estimEdges = ed->findEdges(thresh);
 
 		// Get error
-		cv::Mat targetEdges = ed.findEdges(frame);
+		cv::Mat targetEdges = ed->findEdges(frame);
 		cv::Mat error = (targetEdges - estimEdges);
 
 		// update estimate
-		gradient = ed.sumPixels(error) / pixelCount;
+		gradient = ed->sumPixels(error) / pixelCount;
 		estimate += gradient * learningRate;
 
 		if (iter % 10 == 0) printf("iter: %i, error: (%.3f, %.3f, %.3f)\n", iter, gradient[0], gradient[1], gradient[2]);
@@ -46,11 +45,12 @@ void trainThresholdValues(const char* outputfilename)
 	//loop over cameras
 	//{
 	//		VideoCapture cap(data_path + checker_vid_fname);
+	//		EdgeDetector* ed = new EdgeDetector(<background img>);
 	//		int frameCount = 0;
 	//		cv::Vec3d sum = cv::Vec3b({0, 0, 0});
 	//		loop over frames
 	//		{
-	//			cv::Vec3b estimate = gradientDescent(frame);
+	//			cv::Vec3b estimate = gradientDescent(frame, ed);
 	//			sum += estimate;
 	//			if (frameCount % 10 == 0) printf("frame %i\n", frameCount);
 	//			framecount++;
@@ -61,4 +61,5 @@ void trainThresholdValues(const char* outputfilename)
 	//		results[cam] = avg;
 	//		cam++;
 	//}
+	//file.close();
 }
