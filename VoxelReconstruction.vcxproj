@@ -17,6 +17,7 @@
     <ClCompile Include="src\controllers\Reconstructor.cpp" />
     <ClCompile Include="src\controllers\Scene3DRenderer.cpp" />
     <ClCompile Include="src\EdgeDetector.cpp" />
+    <ClCompile Include="src\GradientDescent.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\utilities\General.cpp" />
     <ClCompile Include="src\VoxelReconstruction.cpp" />
@@ -28,13 +29,14 @@
     <ClInclude Include="src\controllers\Reconstructor.h" />
     <ClInclude Include="src\controllers\Scene3DRenderer.h" />
     <ClInclude Include="src\EdgeDetector.h" />
+    <ClInclude Include="src\GradientDescent.h" />
     <ClInclude Include="src\utilities\General.h" />
     <ClInclude Include="src\VoxelReconstruction.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D024333B-E310-4DFB-B973-F49F08E73EB0}</ProjectGuid>
     <RootNamespace>OpenCVTemplate</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -70,6 +72,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>src\opencv\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>opencv_world320d.lib;OpenGL32.lib;Glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -84,6 +87,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>src\opencv\include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
