@@ -5,33 +5,55 @@
 
 #include "EdgeDetector.h"
 
-// Calculates edgemaps in H, S, and V space
+/*
+	Initializes the EdgeDetector object with the background and its edgemap
+
+	@param background the RGB background image
+*/
+EdgeDetector::EdgeDetector(cv::Mat background) : background(background)
+{
+	cv::cvtColor(background, background, CV_BGR2HSV);
+	backgrEdges = findEdgesHSV(background);
+};
+
+/*
+	Calculates the edgemap of a grayscale (bitmap) image and returns it in 3 identical channels
+
+	@param image the single channel (bitmap) image
+*/
 cv::Mat EdgeDetector::findEdges(cv::Mat image)
 {
-	std::vector<cv::Mat> channels, edges;
+	std::vector<cv::Mat> channels(3);
+	cv::Mat output, edges = gradient(image);
+	for (int i = 0; i < 3; i++) channels[i] = edges / 3;
+	cv::merge(channels, output);
+	return output;
+}
+
+/*
+	Calculates the average of the edgemaps for each channel
+
+	@param image the triple channel (HSV) image
+*/
+cv::Mat EdgeDetector::findEdgesHSV(cv::Mat image)
+{
+	std::vector<cv::Mat> channels, edges(3);
 	cv::split(image, channels);
 	for (int i = 0; i < 3; i++)
 	{
 		edges[i] = gradient(channels[i]);
 	}
 	cv::Mat output;
-	merge(edges, output);
+	cv::merge(edges, output);
 	return output;
 }
 
-// Converts a 8-bit uint image to 0-1 double types
-cv::Mat EdgeDetector::grayScaleToDouble(cv::Mat image)
-{
-	cv::Mat img = image;
-	if (image.type() != CV_8U)
-	{
-		image.convertTo(img, CV_64F);
-		img = img / 256.0;
-	}
-	return img;
-}
+/*
+	Filters an image using a custom convolution kernel
 
-// Filters an image using a custom convolution kernel
+	@param image the single channel image
+	@param the convolution kernel
+*/
 cv::Mat EdgeDetector::filterImage(cv::Mat image, cv::Mat filter)
 {
 	cv::Mat output;
@@ -39,7 +61,11 @@ cv::Mat EdgeDetector::filterImage(cv::Mat image, cv::Mat filter)
 	return output;
 }
 
-// Performs a convolution with a laplacian kernel
+/*
+	Performs a convolution with a laplacian kernel
+
+	@param image the single channel image
+*/
 cv::Mat EdgeDetector::gradient(cv::Mat image)
 {
 	cv::Mat output;
@@ -47,7 +73,11 @@ cv::Mat EdgeDetector::gradient(cv::Mat image)
 	return output;
 }
 
-// Performs an convolution with an erosion kernel
+/*
+	Performs an convolution with an erosion kernel
+
+	@param image the single channel image
+*/
 cv::Mat EdgeDetector::erode(cv::Mat image)
 {
 	cv::Mat output;
@@ -55,7 +85,12 @@ cv::Mat EdgeDetector::erode(cv::Mat image)
 	return output;
 }
 
-// Thresholds the given image
+/*
+	Thresholds the given image
+
+	@param image the single channel image
+	@param value the pixel threshold value
+*/
 cv::Mat EdgeDetector::threshold(cv::Mat image, unsigned char value)
 {
 	cv::Mat img;
@@ -67,7 +102,12 @@ cv::Mat EdgeDetector::threshold(cv::Mat image, unsigned char value)
 	return img;
 }
 
-// Thresholds the given image using HSV values
+/*
+	Thresholds the given image using HSV values
+
+	@param foreground the tripe channel image including foreground
+	@param hsvThresh the HSV threshold values
+*/
 cv::Mat EdgeDetector::thresholdHSV(cv::Mat foreground, cv::Vec3b hsvThresh)
 {
 	cv::Mat result;
@@ -100,13 +140,21 @@ cv::Mat EdgeDetector::thresholdHSV(cv::Mat foreground, cv::Vec3b hsvThresh)
 	return fg;
 }
 
-// Sums the pixel values of an image
-cv::Vec3s EdgeDetector::sumPixels(cv::Mat image) // TODO unit test
+/*
+	Sums the pixel values of an image
+
+	@param image the triple channel image (containing cv::Vec3s types)
+*/
+cv::Vec3s EdgeDetector::sumPixels(cv::Mat image)
 {
-	cv::Vec3b sum = cv::Vec3b({ 0, 0, 0 });
+	double pixelCount = 1 / image.size[0] * image.size[1];
+	cv::Vec3d sum = cv::Vec3d({ 0, 0, 0 });
 	for (int i = 0; i < image.size[0]; i++) for (int j = 0; j < image.size[1]; j++)
 	{
-		sum += image.at<cv::Vec3b>(i, j);
+		//sum += image.at<cv::Vec3s>(i, j) * pixelCount;
+		sum[0] += (double)(image.at<cv::Vec3s>(i, j)[0]) * pixelCount;
+		sum[1] += (double)(image.at<cv::Vec3s>(i, j)[1]) * pixelCount;
+		sum[2] += (double)(image.at<cv::Vec3s>(i, j)[2]) * pixelCount;
 	}
 	return sum;
 }

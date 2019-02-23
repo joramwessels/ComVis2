@@ -7,7 +7,7 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include "EdgeDetector.h"
+#include "GradientDescent.h"
 
 using namespace nl_uu_science_gmt;
 
@@ -147,18 +147,7 @@ int main(int argc, char** argv)
 	//VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
 	//vr.run(argc, argv);
 
-	cv::Mat reference = cv::imread("data/cam1/reference.bmp", CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat foreground = cv::imread("data/cam1/foreground.png");
-	cv::Mat background = cv::imread("data/cam1/background.png");
-
-	//averageFrame("data/cam1/background.avi");	
-
-	cv::Vec3b thresholds = findHSVThresholds(reference, foreground, background);
-	printf("\n\nThresholds: (%d, %d, %d)", thresholds[0], thresholds[1], thresholds[2]);
-
-	cv::Mat resultImage = processForeground(foreground, background, thresholds[0], thresholds[1], thresholds[2]);
-
-	cv::imshow("Result", resultImage);
+	trainThresholdValues("data/", "data/gradientDescentOutput.txt");
 	cv::waitKey(0);
 
 	return EXIT_SUCCESS;
