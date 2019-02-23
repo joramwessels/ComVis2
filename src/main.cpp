@@ -60,6 +60,7 @@ void matDiff(cv::Mat mat1, cv::Mat mat2) {
 
 int main(int argc, char** argv)
 {
+	// ORIGINAL CODE
 	//VoxelReconstruction::showKeys();
 	//VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
 	//vr.run(argc, argv);

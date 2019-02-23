@@ -2,6 +2,7 @@
 #include <time.h>
 #include <string>
 #include <assert.h>
+#include <fstream>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>
@@ -81,7 +82,7 @@ cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, i
 	@param outputfilename the output filename in which to write the HSV estimates per camera
 	@param printEveryNFrames the iteration step size at which to print the intermediate results
 */
-void trainThresholdValues(const char* datafolder, const char* outputfilename, int printEveryNFrames)
+std::vector<cv::Vec3f> trainThresholdValues(const char* datafolder, const char* outputfilename, int printEveryNFrames)
 {
 	FILE* file = fopen(outputfilename, "w");
 	int cam = 0;
@@ -122,4 +123,29 @@ void trainThresholdValues(const char* datafolder, const char* outputfilename, in
 	printf("cam3: (%.2f, %.2f, %.2f)\n", results[2][0], results[2][1], results[2][2]);
 	printf("cam4: (%.2f, %.2f, %.2f)\n", results[3][0], results[3][1], results[3][2]);
 	fclose(file);
+	return results;
+}
+
+/*
+	Reads HSV threshold values from a file
+	
+	@param filename the path to the file
+	@param output a a destination vector of length 4
+	@return a boolean indicating success
+*/
+bool readThresholds(const char* filename, std::vector<cv::Vec3f>&output) // TODO unit test
+{
+	std::ifstream file(filename);
+	if (!file.is_open()) return false;
+	std::string line;
+	for (int i = 0; i < 4; i++)
+	{
+		if (!std::getline(file, line)) return false;
+		if (!line.compare(0, 6, "cam" + std::to_string(i + 1) + ": (")) return false;
+		int j;
+		output[i][0] = std::stod(line.substr(7), &j);
+		output[i][1] = std::stod(line.substr(j + 2), &j);
+		output[i][2] = std::stod(line.substr(j + 2), &j);
+	}
+	file.close();
 }
