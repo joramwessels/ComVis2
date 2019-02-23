@@ -41,10 +41,10 @@ void showImage(cv::Mat image, const char* name="image debug")
 cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, int maxIter, int printEveryNIter)
 {
 	printf("Starting gradient descent...\nlearning rate: %.3f\nmax iterations: %i\n", learningRate, maxIter);
-	int pixelCount = frame.size[0] * frame.size[1];
+	float pixelCount = frame.size[0] * frame.size[1];
 	cv::Vec3b estimate;
 	cv::randu(estimate, cv::Scalar(0), cv::Scalar(255));
-	cv::Vec3f minGradient = cv::Vec3f({ 1.0f, 1.0f, 1.0f }), gradient = minGradient;
+	cv::Vec3d minGradient = cv::Vec3d({ 1.0, 1.0, 1.0 }), gradient = minGradient;
 	cv::Mat thresh, estimEdges, targetEdges;
 	cv::Mat error = cv::Mat(frame.size[0], frame.size[1], CV_16S);
 	int iter = 0;
@@ -64,7 +64,7 @@ cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, i
 		showImage(error, "edgemap difference"); // DEBUG
 
 		// update estimate
-		gradient = ed->sumPixels(error);// / (float)pixelCount;
+		gradient = ed->sumPixels(error);
 		estimate += gradient * learningRate;
 
 		if (iter % printEveryNIter == 0) printf("iter: %i, error: (%.3f, %.3f, %.3f)\n", iter, gradient[0], gradient[1], gradient[2]);

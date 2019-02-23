@@ -143,14 +143,18 @@ cv::Mat EdgeDetector::thresholdHSV(cv::Mat foreground, cv::Vec3b hsvThresh)
 /*
 	Sums the pixel values of an image
 
-	@param image the triple channel image
+	@param image the triple channel image (containing cv::Vec3s types)
 */
-cv::Vec3s EdgeDetector::sumPixels(cv::Mat image) // TODO unit test
+cv::Vec3s EdgeDetector::sumPixels(cv::Mat image)
 {
-	cv::Vec3b sum = cv::Vec3b({ 0, 0, 0 });
+	double pixelCount = 1 / image.size[0] * image.size[1];
+	cv::Vec3d sum = cv::Vec3d({ 0, 0, 0 });
 	for (int i = 0; i < image.size[0]; i++) for (int j = 0; j < image.size[1]; j++)
 	{
-		sum += image.at<cv::Vec3b>(i, j);
+		//sum += image.at<cv::Vec3s>(i, j) * pixelCount;
+		sum[0] += (double)(image.at<cv::Vec3s>(i, j)[0]) * pixelCount;
+		sum[1] += (double)(image.at<cv::Vec3s>(i, j)[1]) * pixelCount;
+		sum[2] += (double)(image.at<cv::Vec3s>(i, j)[2]) * pixelCount;
 	}
 	return sum;
 }
