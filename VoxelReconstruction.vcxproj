@@ -34,7 +34,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D024333B-E310-4DFB-B973-F49F08E73EB0}</ProjectGuid>
     <RootNamespace>OpenCVTemplate</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

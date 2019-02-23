@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 	cv::Mat background = cv::imread("data/cam1/background.png");
 	cv::Mat foreground = cv::imread("data/cam1/foreground.png");
 
-	cv::Mat processed = processForeground(foreground, background, 10, 10, 10);
+	cv::Mat processed = processForeground(foreground, background, 20, 20, 20);
 
 	cv::imshow("Foreground", processed);
 	cv::waitKey(0);
