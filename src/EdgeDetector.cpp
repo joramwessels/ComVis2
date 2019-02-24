@@ -10,28 +10,45 @@
 
 	@param background the RGB background image
 */
-EdgeDetector::EdgeDetector(cv::Mat background) : background(background)
+EdgeDetector::EdgeDetector(cv::Mat background) : m_background(background)
 {
-	cv::cvtColor(background, background, CV_BGR2HSV);
-	backgrEdges = findEdgesHSV(background);
+	cv::cvtColor(m_background, m_background, CV_BGR2HSV);
+	m_background.convertTo(m_background, CV_16S);
+	m_backgrEdges = findEdgesHSV(m_background);
+	m_backgrEdges.convertTo(m_backgrEdges, CV_16S);
 };
 
 /*
-	Calculates the edgemap of a grayscale (bitmap) image and returns it in 3 identical channels
-
-	@param image the single channel (bitmap) image
+	Calculates the edgemap of a single channel image
+	
+	@param image the single channel image
 */
 cv::Mat EdgeDetector::findEdges(cv::Mat image)
 {
+	cv::Mat output = image;
+	erode(output);
+	blur(output);
+	gradient(output);
+	dilate(output);
+	return output;
+}
+
+/*
+	Calculates triple channel edgemap from single channel input
+
+	@param image the single channel (bitmap) image
+*/
+cv::Mat EdgeDetector::findEdgesSingle(cv::Mat image)
+{
 	std::vector<cv::Mat> channels(3);
-	cv::Mat output, edges = gradient(image);
+	cv::Mat output, edges = findEdges(image);
 	for (int i = 0; i < 3; i++) channels[i] = edges / 3;
 	cv::merge(channels, output);
 	return output;
 }
 
 /*
-	Calculates the average of the edgemaps for each channel
+	Calculates the edgemap of each HSV channel separately
 
 	@param image the triple channel (HSV) image
 */
@@ -41,7 +58,7 @@ cv::Mat EdgeDetector::findEdgesHSV(cv::Mat image)
 	cv::split(image, channels);
 	for (int i = 0; i < 3; i++)
 	{
-		edges[i] = gradient(channels[i]);
+		edges[i] = findEdges(channels[i]);
 	}
 	cv::Mat output;
 	cv::merge(edges, output);
@@ -54,11 +71,9 @@ cv::Mat EdgeDetector::findEdgesHSV(cv::Mat image)
 	@param image the single channel image
 	@param the convolution kernel
 */
-cv::Mat EdgeDetector::filterImage(cv::Mat image, cv::Mat filter)
+void EdgeDetector::filterImage(cv::Mat image, cv::Mat filter)
 {
-	cv::Mat output;
-	cv::filter2D(image, output, -1, filter);
-	return output;
+	cv::filter2D(image, image, -1, filter);
 }
 
 /*
@@ -66,40 +81,56 @@ cv::Mat EdgeDetector::filterImage(cv::Mat image, cv::Mat filter)
 
 	@param image the single channel image
 */
-cv::Mat EdgeDetector::gradient(cv::Mat image)
+void EdgeDetector::gradient(cv::Mat image)
 {
-	cv::Mat output;
-	cv::filter2D(image, output, -1, cv::Mat(3, 3, CV_64F, laplacian));
-	return output;
+	cv::filter2D(image, image, -1, cv::Mat(3, 3, CV_64F, laplacian));
 }
 
 /*
-	Performs an convolution with an erosion kernel
+	Performs a convolution with an erosion kernel
 
 	@param image the single channel image
 */
-cv::Mat EdgeDetector::erode(cv::Mat image)
+void EdgeDetector::erode(cv::Mat image)
 {
-	cv::Mat output;
-	cv::erode(image, output, 0);
-	return output;
+	cv::erode(image, image, 0);
 }
 
 /*
-	Thresholds the given image
-
+	Performs a convolution with a dilation kernel
+	
 	@param image the single channel image
+*/
+void EdgeDetector::dilate(cv::Mat image)
+{
+	cv::dilate(image, image, 0);
+}
+
+/*
+	Performs a convolution with a Gaussian kernel
+	
+	@param image the single channel image
+*/
+void EdgeDetector::blur(cv::Mat image)
+{
+	cv::blur(image, image, cv::Size(3, 3));
+}
+
+/*
+	Thresholds a single channel image
+	If the element reaches the threshold, it retains its previous value
+
+	@param image the single channel image (with CV_16S types)
 	@param value the pixel threshold value
 */
-cv::Mat EdgeDetector::threshold(cv::Mat image, unsigned char value)
+void EdgeDetector::threshold(cv::Mat image, unsigned char value)
 {
-	cv::Mat img;
-	for (int i = 0; i < image.size[0]; i++) for (int j = 0; j < image.size[1]; j++)
+	int rows = image.size[0], cols = image.size[1];
+	for (int r = 0; r < rows; r++) for (int c = 0; c < cols; c++)
 	{
-		if (img.at<unsigned char>(i, j) > value) ((unsigned char*)img.data)[j + i * img.size[1]] = 255;
-		else ((unsigned char*)img.data)[j + i * img.size[1]] = 0;
+		if (abs(image.at<short>(r, c)) < value)
+			((short*)image.data)[c + r * cols] = 0;
 	}
-	return img;
 }
 
 /*
@@ -112,15 +143,15 @@ cv::Mat EdgeDetector::thresholdHSV(cv::Mat foreground, cv::Vec3b hsvThresh)
 {
 	cv::Mat result;
 
-	cv::Mat foregroundHsv;
-	cv::Mat backgroundHsv;
-	cv::cvtColor(foreground, foregroundHsv, CV_BGR2HSV);
-	cv::cvtColor(background, backgroundHsv, CV_BGR2HSV);
+	cv::Mat foregroundU;
+	cv::Mat backgroundU;
+	foreground.convertTo(foregroundU, CV_8U);
+	m_background.convertTo(backgroundU, CV_8U);
 
 	std::vector<cv::Mat> foregroundChannels;
 	std::vector<cv::Mat> backgroundChannels;
-	cv::split(foregroundHsv, foregroundChannels);
-	cv::split(backgroundHsv, backgroundChannels);
+	cv::split(foregroundU, foregroundChannels);
+	cv::split(backgroundU, backgroundChannels);
 
 	// Background subtraction H
 	cv::Mat tmp, fg, bg;
@@ -141,20 +172,57 @@ cv::Mat EdgeDetector::thresholdHSV(cv::Mat foreground, cv::Vec3b hsvThresh)
 }
 
 /*
+	Thresholds each channel of the image only with its respective H, S, or V threshold
+	and returns a triple channel bitmap
+	
+	@param foreground the tripe channel image including foreground
+	@param hsvThresh the HSV threshold values
+*/
+cv::Mat EdgeDetector::thresholdHSVSeparate(const cv::Mat image, cv::Vec3b hsvThresh) // NOTE does this change the original image?
+{
+	std::vector<cv::Mat> channels;
+	cv::split(image, channels);
+	for (int i = 0; i < 3; i++) threshold(channels[i], hsvThresh[i]);
+	cv::Mat output;
+	cv::merge(channels, output);
+	return output;
+}
+
+/*
+	Subtracts the blurred versions of the edgemaps to get the difference
+	
+	@param image1
+	@param image2
+*/
+cv::Mat EdgeDetector::computeError(cv::Mat image1, cv::Mat image2)
+{
+	cv::Mat blur1, blur2;
+	std::vector<cv::Mat> channels;
+
+	cv::split(image1, channels);
+	for (int i = 0; i < 3; i++) blur(channels[i]);
+	cv::merge(channels, blur1);
+
+	cv::split(image2, channels);
+	for (int i = 0; i < 3; i++) blur(channels[i]);
+	cv::merge(channels, blur2);
+
+	return image1 - image2;
+}
+
+/*
 	Sums the pixel values of an image
 
 	@param image the triple channel image (containing cv::Vec3s types)
 */
-cv::Vec3s EdgeDetector::sumPixels(cv::Mat image)
+cv::Vec3d EdgeDetector::sumPixels(cv::Mat image)
 {
-	double pixelCount = 1 / image.size[0] * image.size[1];
-	cv::Vec3d sum = cv::Vec3d({ 0, 0, 0 });
-	for (int i = 0; i < image.size[0]; i++) for (int j = 0; j < image.size[1]; j++)
-	{
-		//sum += image.at<cv::Vec3s>(i, j) * pixelCount;
-		sum[0] += (double)(image.at<cv::Vec3s>(i, j)[0]) * pixelCount;
-		sum[1] += (double)(image.at<cv::Vec3s>(i, j)[1]) * pixelCount;
-		sum[2] += (double)(image.at<cv::Vec3s>(i, j)[2]) * pixelCount;
+	cv::Vec3d sum = cv::Vec3d(0, 0, 0);
+	for (int r = 0; r < image.rows; r++) for (int c = 0; c < image.cols; c++) {
+		cv::Vec3s px = image.at<cv::Vec3s>(r, c);
+		sum[0] += (double) px[0];
+		sum[1] += (double) px[1];
+		sum[2] += (double) px[2];
 	}
 	return sum;
 }

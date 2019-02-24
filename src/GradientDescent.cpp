@@ -12,7 +12,7 @@
 #include "utilities\General.h"
 #include "GradientDescent.h"
 
-inline bool belowMinimum(const cv::Vec3f a, const cv::Vec3f b) { return a[0] < b[0] && a[1] < b[1] && a[2] < b[2]; }
+inline bool belowMinimum(const cv::Vec3f a, const cv::Vec3f b) { return abs(a[0]) < abs(b[0]) && abs(a[1]) < abs(b[1]) && abs(a[2]) < abs(b[2]); }
 
 /*
 	Debug function that shows intermediate result
@@ -22,8 +22,10 @@ inline bool belowMinimum(const cv::Vec3f a, const cv::Vec3f b) { return a[0] < b
 */
 void showImage(cv::Mat image, const char* name="image debug")
 {
+	cv::Mat conv;
+	image.convertTo(conv, CV_8U);
 	cv::namedWindow(name);
-	cv::imshow(name, image);
+	cv::imshow(name, conv);
 	cv::waitKey(0);
 	cv::destroyWindow(name);
 }
@@ -42,36 +44,73 @@ void showImage(cv::Mat image, const char* name="image debug")
 cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, int maxIter, int printEveryNIter)
 {
 	printf("Starting gradient descent...\nlearning rate: %.3f\nmax iterations: %i\n", learningRate, maxIter);
-	float pixelCount = frame.size[0] * frame.size[1];
+
+	// Declarations
+	cv::Mat hsvframe, targetEdges, diffWithBckgr, estimEdges, thresh, error;
+	cv::Vec3d minGradient = cv::Vec3d({ .0005, .0005, .0005 }), gradient = minGradient;
+	double gradientNorm = 1.0 / (double)(frame.size[0] * frame.size[1]);
+
+	// Converting input
+	cv::cvtColor(frame, hsvframe, CV_BGR2HSV);	// convert to HSV
+	hsvframe.convertTo(hsvframe, CV_16S);		// convert to short
+
+	// Precalculating target
+	targetEdges = ed->findEdgesHSV(hsvframe); // is this result in CV_16S ?
+	targetEdges = ed->computeError(targetEdges, ed->getBackgrEdges());
+	//showImage(targetEdges, "target edges"); // DEBUG
+
+	// Randomly initializing estimate
 	cv::Vec3b estimate;
-	cv::randu(estimate, cv::Scalar(0), cv::Scalar(255));
-	cv::Vec3d minGradient = cv::Vec3d({ 1.0, 1.0, 1.0 }), gradient = minGradient;
-	cv::Mat thresh, estimEdges, targetEdges;
-	cv::Mat error = cv::Mat(frame.size[0], frame.size[1], CV_16S);
+	cv::randu(estimate, cv::Scalar(10), cv::Scalar(245));
+	cv::Vec3d estimateD = cv::Vec3d(estimate[0], estimate[1], estimate[2]);
+
 	int iter = 0;
 	while (!belowMinimum(gradient, minGradient) && iter < maxIter)
 	{
-		// Current estimate
-		thresh = ed->thresholdHSV(frame, estimate);
-		showImage(thresh, "thresholded estimate"); // DEBUG
-		estimEdges = ed->findEdges(thresh);
-		showImage(estimEdges, "estimate edgemap"); // DEBUG
+		// Current estimate (thresholded difference with background)
+		diffWithBckgr = hsvframe - ed->getBackground();
+		thresh = ed->thresholdHSVSeparate(diffWithBckgr, estimate);
+		estimEdges = ed->findEdgesHSV(thresh);
 
-		// Get difference
-		targetEdges = ed->findEdgesHSV(frame);
-		targetEdges -= ed->getBackgrEdges();
-		showImage(targetEdges, "target edgemap"); // DEBUG
-		error = (targetEdges - estimEdges);
-		showImage(error, "edgemap difference"); // DEBUG
+		// Get difference (blurred subtraction)
+		error = ed->computeError(estimEdges, targetEdges);
 
 		// update estimate
-		gradient = ed->sumPixels(error);
-		estimate += gradient * learningRate;
+		gradient = ed->sumPixels(error) * gradientNorm;
+		estimateD += gradient * learningRate;
+		estimate[0] = (uchar)estimateD[0];
+		estimate[1] = (uchar)estimateD[1];
+		estimate[2] = (uchar)estimateD[2];
 
-		if (iter % printEveryNIter == 0) printf("iter: %i, error: (%.3f, %.3f, %.3f)\n", iter, gradient[0], gradient[1], gradient[2]);
+		if (iter % printEveryNIter == 0)
+		{
+			printf("iter: %i, error: (%.6f, %.6f, %.6f) ", iter, gradient[0], gradient[1], gradient[2]);
+			printf("estim: (%i, %i, %i)\n", estimate[0], estimate[1], estimate[2]);
+			showImage(diffWithBckgr, "diff with background"); // DEBUG
+			showImage(ed->thresholdHSV(diffWithBckgr, estimate)); // DEBUG
+			//showImage(thresh, "estimate threshold"); // DEBUG
+			//showImage(estimEdges, "estimate edges"); // DEBUG
+			//showImage(error, "error"); // DEBUG
+		}
 		iter++;
 	}
 	if (iter == maxIter) printf("iterated for %i loops. execution stopped.\n", maxIter);
+	// DEBUG
+	// Are the final edges even close to the target?
+	cv::Mat estimU, targetU, errorU, diffU;
+	estimEdges.convertTo(estimU, CV_8U);
+	targetEdges.convertTo(targetU, CV_8U);
+	error.convertTo(errorU, CV_8U);
+	diffWithBckgr.convertTo(diffU, CV_8U);
+	cv::namedWindow("Estimate");
+	cv::namedWindow("Target");
+	cv::namedWindow("Error");
+	cv::imshow("Estimate", estimU);
+	cv::imshow("Target", targetU);
+	cv::imshow("Error", errorU);
+	cv::waitKey(0);
+	showImage(ed->thresholdHSV(diffWithBckgr, estimate), "result");
+	// endDEBUG
 	return estimate;
 }
 
@@ -86,7 +125,7 @@ std::vector<cv::Vec3f> trainThresholdValues(const char* datafolder, const char* 
 {
 	FILE* file = fopen(outputfilename, "w");
 	int cam = 0;
-	std::vector<cv::Vec3f> results;
+	std::vector<cv::Vec3f> results(4);
 	std::string path = datafolder + std::string("/");
 	for (int i=0; i<4; i++)
 	{
@@ -100,19 +139,19 @@ std::vector<cv::Vec3f> trainThresholdValues(const char* datafolder, const char* 
 		EdgeDetector* ed = new EdgeDetector(background);
 		int frameCount = 0;
 		cv::Vec3d sum = cv::Vec3b({0, 0, 0});
-		cv::Mat frame, hsvframe;
+		cv::Mat frame;
 		int maxframes = 2; // DEBUG
 		while (cap.read(frame))
 		{
 			if (frameCount >= maxframes) break; // DEBUG
-			cv::cvtColor(frame, hsvframe, CV_BGR2HSV);		 // convert to HSV
-			cv::Vec3b estimate = gradientDescent(hsvframe, ed); // estimate HSV threshold
+			cv::Vec3b estimate = gradientDescent(frame, ed); // estimate HSV threshold
 			sum += estimate;
 			if (frameCount % printEveryNFrames == 0) printf("frame %i\n", frameCount);
 			frameCount++;
 		}
 		cv::Vec3f avg = sum / frameCount;
-		fprintf(file, "cam%i: (%.2f, %.2f, %.2f)\n", cam + 1, avg[0], avg[1], avg[2]);
+		showImage(ed->thresholdHSV(frame, avg));
+		fprintf(file, "cam%i: (%i, %i, %i)\n", cam + 1, (int)avg[0], (int)avg[1], (int)avg[2]);
 		printf("avg for cam %i is (%.2f, %.2f, %.2f)\n", cam + 1, avg[0], avg[1], avg[2]);
 		results[cam] = avg;
 		cam++;
@@ -142,10 +181,10 @@ bool readThresholds(const char* filename, std::vector<cv::Vec3f>&output) // TODO
 	{
 		if (!std::getline(file, line)) return false;
 		if (!line.compare(0, 6, "cam" + std::to_string(i + 1) + ": (")) return false;
-		int j;
-		output[i][0] = std::stod(line.substr(7), &j);
-		output[i][1] = std::stod(line.substr(j + 2), &j);
-		output[i][2] = std::stod(line.substr(j + 2), &j);
+		int j = 0;
+		//output[i][0] = std::stof(line.substr(7));
+		//output[i][1] = std::stof(line.substr(j + 2), &j);
+		//output[i][2] = std::stof(line.substr(j + 2), &j);
 	}
 	file.close();
 }

@@ -148,7 +148,12 @@ int main(int argc, char** argv)
 	//VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
 	//vr.run(argc, argv);
 
-	trainThresholdValues("data/", "data/gradientDescentOutput.txt");
+	std::vector<cv::Vec3f> thresholds(4);
+	const char* filename = "data/gradientDescentOutput.txt";
+	//if (!readThresholds(filename, thresholds))
+		thresholds = trainThresholdValues("data/", filename);
+	// TODO set thresholds in scene3d
+	// TODO show 3d scene
 	cv::waitKey(0);
 
 	return EXIT_SUCCESS;
