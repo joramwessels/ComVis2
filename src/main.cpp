@@ -30,7 +30,6 @@ cv::Mat averageFrame(const std::string &path) {
 
 	for (int r = 0; r < result.rows; r++) {
 		for (int c = 0; c < result.cols; c++) {
-			printf("\nPixel %d/%d", r * result.cols + c, result.rows * result.cols);
 			int totalB = 0;
 			int totalG = 0;
 			int totalR = 0;
@@ -117,15 +116,13 @@ int matDiffBinary(cv::Mat mat1, cv::Mat mat2) {
 	return diff;
 }
 
-cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &background) {
-	int step = 10;
+cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &background, int step) {
 	int bestDiff = INT_MAX;
-	cv::Vec3b thresholds = (0, 0, 0);
+	cv::Vec3b thresholds = cv::Vec3b(0, 0, 0);
 
-	for (int h = 0; h < 120; h += step) {
-		for (int s = 0; s < 120; s += step) {
-			for (int v = 0; v < 120; v += step) {
-				printf("\n(%d, %d, %d)", h, s, v);
+	for (int h = std::max(0, thresholds[0] - 8 * step); h < std::min(thresholds[0] + 8 * step, 256); h += step) {
+		for (int s = std::max(0, thresholds[1] - 8 * step); s < std::min(thresholds[1] + 8 * step, 256); s += step) {
+			for (int v = std::max(0, thresholds[2] - 8 * step); v < std::min(thresholds[2] + 8 * step, 256); v += step) {
 				cv::Mat processed = processForeground(foreground, background, h, s, v);
 
 				cv::waitKey(0);
@@ -138,7 +135,12 @@ cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &ba
 		}
 	}
 
-	return thresholds;
+	if (step == 1) {
+		return thresholds;
+	}
+	else {
+		return findHSVThresholds(reference, foreground, background, step / 2);
+	}
 }
 
 int main(int argc, char** argv)
