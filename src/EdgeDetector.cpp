@@ -178,7 +178,7 @@ cv::Mat EdgeDetector::thresholdHSV(cv::Mat foreground, cv::Vec3b hsvThresh)
 	@param foreground the tripe channel image including foreground
 	@param hsvThresh the HSV threshold values
 */
-cv::Mat EdgeDetector::thresholdHSVSeparate(const cv::Mat image, cv::Vec3b hsvThresh) // NOTE does this change the original image?
+cv::Mat EdgeDetector::thresholdHSVSeparate(const cv::Mat image, cv::Vec3b hsvThresh)
 {
 	std::vector<cv::Mat> channels;
 	cv::split(image, channels);

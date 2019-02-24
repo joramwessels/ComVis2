@@ -1,11 +1,15 @@
 #include <cstdlib>
 #include <string>
 
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include "utilities/General.h"
 #include "VoxelReconstruction.h"
-#include <climits>
+#include "controllers/Glut.h"
+#include "controllers/Reconstructor.h"
+#include "controllers/Scene3DRenderer.h"
 
-#include <opencv2/imgproc/imgproc.hpp>
+#include <climits>
 
 #include "GradientDescent.h"
 
@@ -150,13 +154,45 @@ int main(int argc, char** argv)
 	//VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
 	//vr.run(argc, argv);
 
-	std::vector<cv::Vec3f> thresholds(4);
 	const char* filename = "data/gradientDescentOutput.txt";
-	//if (!readThresholds(filename, thresholds))
-		thresholds = trainThresholdValues("data/", filename);
-	// TODO set thresholds in scene3d
-	// TODO show 3d scene
-	cv::waitKey(0);
+	int rotationSpeed = 30;
 
+	// Determining thresholds
+	std::vector<cv::Vec3f> thresholds(4);
+	printf("Reading threshold values from %s\n", filename);
+	if (!readThresholds(filename, thresholds))
+	{
+		printf("No valid threshold file found. Commencing threshold training...");
+		thresholds = trainThresholdValues("data/", filename);
+	}
+	cv::Vec3b avg;
+	avg[0] = (uchar)((thresholds[0][0] + thresholds[1][0] + thresholds[2][0] + thresholds[3][0]) / 4);
+	avg[1] = (uchar)((thresholds[0][1] + thresholds[1][1] + thresholds[2][1] + thresholds[3][1]) / 4);
+	avg[2] = (uchar)((thresholds[0][2] + thresholds[1][2] + thresholds[2][2] + thresholds[3][2]) / 4);
+	printf("Thresholds:\nH: %i\nS: %i\nV: %i\n", avg[0], avg[1], avg[2]);
+
+	// Initializing cameras
+	VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
+	std::vector<nl_uu_science_gmt::Camera*> cameras = vr.getCameras();
+	for (int v = 0; v < 4; ++v)
+	{
+		bool has_cam = Camera::detExtrinsics(cameras[v]->getDataPath(), General::CheckerboadVideo,
+			General::IntrinsicsFile, cameras[v]->getCamPropertiesFile());
+		assert(has_cam);
+		cameras[v]->initialize();
+	}
+
+	// Presenting results in 3D scene
+	cv::namedWindow(VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
+	nl_uu_science_gmt::Reconstructor reconstructor(cameras);
+	nl_uu_science_gmt::Scene3DRenderer scene3d(reconstructor, cameras);
+	nl_uu_science_gmt::Glut glut(scene3d);
+	glut.initializeWindows(SCENE_WINDOW.c_str());
+	while (!scene3d.isQuit())
+	{
+		glut.motion(rotationSpeed, 0);
+		glut.update(0);
+		glut.display();
+	}
 	return EXIT_SUCCESS;
 }

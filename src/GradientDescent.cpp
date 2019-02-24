@@ -86,9 +86,9 @@ cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, i
 		{
 			printf("iter: %i, error: (%.6f, %.6f, %.6f) ", iter, gradient[0], gradient[1], gradient[2]);
 			printf("estim: (%i, %i, %i)\n", estimate[0], estimate[1], estimate[2]);
-			showImage(diffWithBckgr, "diff with background"); // DEBUG
-			showImage(ed->thresholdHSV(diffWithBckgr, estimate)); // DEBUG
+			//showImage(diffWithBckgr, "diff with background"); // DEBUG
 			//showImage(thresh, "estimate threshold"); // DEBUG
+			//showImage(ed->thresholdHSV(hsvframe, estimate)); // DEBUG
 			//showImage(estimEdges, "estimate edges"); // DEBUG
 			//showImage(error, "error"); // DEBUG
 		}
@@ -97,19 +97,19 @@ cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, i
 	if (iter == maxIter) printf("iterated for %i loops. execution stopped.\n", maxIter);
 	// DEBUG
 	// Are the final edges even close to the target?
-	cv::Mat estimU, targetU, errorU, diffU;
-	estimEdges.convertTo(estimU, CV_8U);
-	targetEdges.convertTo(targetU, CV_8U);
-	error.convertTo(errorU, CV_8U);
-	diffWithBckgr.convertTo(diffU, CV_8U);
-	cv::namedWindow("Estimate");
-	cv::namedWindow("Target");
-	cv::namedWindow("Error");
-	cv::imshow("Estimate", estimU);
-	cv::imshow("Target", targetU);
-	cv::imshow("Error", errorU);
-	cv::waitKey(0);
-	showImage(ed->thresholdHSV(diffWithBckgr, estimate), "result");
+	//cv::Mat estimU, targetU, errorU, diffU;
+	//estimEdges.convertTo(estimU, CV_8U);
+	//targetEdges.convertTo(targetU, CV_8U);
+	//error.convertTo(errorU, CV_8U);
+	//diffWithBckgr.convertTo(diffU, CV_8U);
+	//cv::namedWindow("Estimate");
+	//cv::namedWindow("Target");
+	//cv::namedWindow("Error");
+	//cv::imshow("Estimate", estimU);
+	//cv::imshow("Target", targetU);
+	//cv::imshow("Error", errorU);
+	//cv::waitKey(0);
+	//showImage(ed->thresholdHSV(hsvframe, estimate), "result");
 	// endDEBUG
 	return estimate;
 }
@@ -124,12 +124,12 @@ cv::Vec3b gradientDescent(cv::Mat frame, EdgeDetector* ed, float learningRate, i
 std::vector<cv::Vec3f> trainThresholdValues(const char* datafolder, const char* outputfilename, int printEveryNFrames)
 {
 	FILE* file = fopen(outputfilename, "w");
-	int cam = 0;
 	std::vector<cv::Vec3f> results(4);
 	std::string path = datafolder + std::string("/");
-	for (int i=0; i<4; i++)
+	cv::theRNG().state = time(NULL);
+	for (int cam=3; cam<4; cam++)
 	{
-		std::string path = datafolder + std::string("/") + "cam" + std::to_string(i+1) + std::string("/");
+		std::string path = datafolder + std::string("/") + "cam" + std::to_string(cam+1) + std::string("/");
 		assert(nl_uu_science_gmt::General::fexists(path + "background.png"));
 		cv::Mat background = cv::imread(path + "background.png");
 		assert(nl_uu_science_gmt::General::fexists(path + "video.avi"));
@@ -140,27 +140,26 @@ std::vector<cv::Vec3f> trainThresholdValues(const char* datafolder, const char* 
 		int frameCount = 0;
 		cv::Vec3d sum = cv::Vec3b({0, 0, 0});
 		cv::Mat frame;
-		int maxframes = 2; // DEBUG
+		int maxframes = 50; // DEBUG
 		while (cap.read(frame))
 		{
 			if (frameCount >= maxframes) break; // DEBUG
 			cv::Vec3b estimate = gradientDescent(frame, ed); // estimate HSV threshold
 			sum += estimate;
-			if (frameCount % printEveryNFrames == 0) printf("frame %i\n", frameCount);
+			if (frameCount % printEveryNFrames == 0) printf("cam %i frame %i\n", cam+1, frameCount);
 			frameCount++;
 		}
 		cv::Vec3f avg = sum / frameCount;
-		showImage(ed->thresholdHSV(frame, avg));
+		//showImage(ed->thresholdHSV(frame, avg));
 		fprintf(file, "cam%i: (%i, %i, %i)\n", cam + 1, (int)avg[0], (int)avg[1], (int)avg[2]);
 		printf("avg for cam %i is (%.2f, %.2f, %.2f)\n", cam + 1, avg[0], avg[1], avg[2]);
 		results[cam] = avg;
-		cam++;
 	}
 	printf("\nTraining done\n");
-	printf("cam1: (%.2f, %.2f, %.2f)\n", results[0][0], results[0][1], results[0][2]);
-	printf("cam2: (%.2f, %.2f, %.2f)\n", results[1][0], results[1][1], results[1][2]);
-	printf("cam3: (%.2f, %.2f, %.2f)\n", results[2][0], results[2][1], results[2][2]);
-	printf("cam4: (%.2f, %.2f, %.2f)\n", results[3][0], results[3][1], results[3][2]);
+	printf("cam1: (%i, %i, %i)\n", (int)results[0][0], (int)results[0][1], (int)results[0][2]);
+	printf("cam2: (%i, %i, %i)\n", (int)results[1][0], (int)results[1][1], (int)results[1][2]);
+	printf("cam3: (%i, %i, %i)\n", (int)results[2][0], (int)results[2][1], (int)results[2][2]);
+	printf("cam4: (%i, %i, %i)\n", (int)results[3][0], (int)results[3][1], (int)results[3][2]);
 	fclose(file);
 	return results;
 }
@@ -180,11 +179,11 @@ bool readThresholds(const char* filename, std::vector<cv::Vec3f>&output) // TODO
 	for (int i = 0; i < 4; i++)
 	{
 		if (!std::getline(file, line)) return false;
-		if (!line.compare(0, 6, "cam" + std::to_string(i + 1) + ": (")) return false;
-		int j = 0;
-		//output[i][0] = std::stof(line.substr(7));
-		//output[i][1] = std::stof(line.substr(j + 2), &j);
-		//output[i][2] = std::stof(line.substr(j + 2), &j);
+		if (!line.compare(0, 7, "cam" + std::to_string(i + 1) + ": (")) return false;
+		size_t j = 5;
+		output[i][0] = std::stoi(line.substr(j + 2), &j);
+		output[i][1] = std::stoi(line.substr(j + 2), &j);
+		output[i][2] = std::stoi(line.substr(j + 2), &j);
 	}
 	file.close();
 }

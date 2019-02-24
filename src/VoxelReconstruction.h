@@ -30,6 +30,8 @@ public:
 	static void showKeys();
 
 	void run(int, char**);
+
+	std::vector<Camera*> getCameras() const { return m_cam_views; }
 };
 
 } /* namespace nl_uu_science_gmt */
