@@ -9,7 +9,7 @@
 #include "controllers/Reconstructor.h"
 #include "controllers/Scene3DRenderer.h"
 
-#include <climits>
+//#include <climits>
 
 #include "GradientDescent.h"
 
@@ -124,9 +124,9 @@ cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &ba
 	int bestDiff = INT_MAX;
 	cv::Vec3b thresholds = cv::Vec3b(0, 0, 0);
 
-	for (int h = std::max(0, thresholds[0] - 8 * step); h < std::min(thresholds[0] + 8 * step, 256); h += step) {
-		for (int s = std::max(0, thresholds[1] - 8 * step); s < std::min(thresholds[1] + 8 * step, 256); s += step) {
-			for (int v = std::max(0, thresholds[2] - 8 * step); v < std::min(thresholds[2] + 8 * step, 256); v += step) {
+	for (int h = max(0, thresholds[0] - 8 * step); h < min(thresholds[0] + 8 * step, 256); h += step) {
+		for (int s = max(0, thresholds[1] - 8 * step); s < min(thresholds[1] + 8 * step, 256); s += step) {
+			for (int v = max(0, thresholds[2] - 8 * step); v < min(thresholds[2] + 8 * step, 256); v += step) {
 				cv::Mat processed = processForeground(foreground, background, h, s, v);
 
 				cv::waitKey(0);
@@ -157,20 +157,6 @@ int main(int argc, char** argv)
 	const char* filename = "data/gradientDescentOutput.txt";
 	int rotationSpeed = 30;
 
-	// Determining thresholds
-	std::vector<cv::Vec3f> thresholds(4);
-	printf("Reading threshold values from %s\n", filename);
-	if (!readThresholds(filename, thresholds))
-	{
-		printf("No valid threshold file found. Commencing threshold training...");
-		thresholds = trainThresholdValues("data/", filename);
-	}
-	cv::Vec3b avg;
-	avg[0] = (uchar)((thresholds[0][0] + thresholds[1][0] + thresholds[2][0] + thresholds[3][0]) / 4);
-	avg[1] = (uchar)((thresholds[0][1] + thresholds[1][1] + thresholds[2][1] + thresholds[3][1]) / 4);
-	avg[2] = (uchar)((thresholds[0][2] + thresholds[1][2] + thresholds[2][2] + thresholds[3][2]) / 4);
-	printf("Thresholds:\nH: %i\nS: %i\nV: %i\n", avg[0], avg[1], avg[2]);
-
 	// Initializing cameras
 	VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
 	std::vector<nl_uu_science_gmt::Camera*> cameras = vr.getCameras();
@@ -190,7 +176,6 @@ int main(int argc, char** argv)
 	glut.initializeWindows(SCENE_WINDOW.c_str());
 	while (!scene3d.isQuit())
 	{
-		glut.motion(rotationSpeed, 0);
 		glut.update(0);
 		glut.display();
 	}
