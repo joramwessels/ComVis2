@@ -1,5 +1,5 @@
 Required libraries (Linux):
-===========================
+============================
 
 opencv_core
 opencv_highgui
@@ -12,7 +12,7 @@ glut
 
 
 Required libraries (Windows):
-=============================
+==============================
 
 opencv_world
 
