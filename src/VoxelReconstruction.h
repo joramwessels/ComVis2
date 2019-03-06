@@ -23,10 +23,14 @@ class VoxelReconstruction
 
 	std::vector<Camera*> m_cam_views;
 
-	int m_voxelStepSize;
-	int m_clusterEpochs;
-	int m_clusterCount;
-	double m_terminationDelta;
+	int m_voxelStepSize = 32;
+	int m_clusterEpochs = 10;
+	int m_clusterCount = 4;
+	double m_terminationDelta = 0.01;
+
+	int m_h_thrs = 20;
+	int m_s_thrs = 20;
+	int m_v_thrs = 20;
 
 public:
 	VoxelReconstruction(const std::string &, const int);
@@ -52,6 +56,8 @@ public:
 		m_clusterCount = clusterCount;
 		m_terminationDelta = terminationDelta;
 	}
+
+	void setHSVThresholds(int h, int s, int v) { m_h_thrs = s; m_s_thrs = s; m_v_thrs = v; }
 };
 
 } /* namespace nl_uu_science_gmt */

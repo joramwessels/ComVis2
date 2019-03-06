@@ -44,6 +44,7 @@ private:
 
 	std::vector<Voxel*> m_voxels;           // Pointer vector to all voxels in the half-space
 	std::vector<Voxel*> m_visible_voxels;   // Pointer vector to all visible voxels
+	std::vector<int> m_clusterLabels;
 
 	void initialize();
 
@@ -108,6 +109,18 @@ public:
 		m_clusterEpochs = clusterEpochs;
 		m_clusterCount = clusterCount;
 		m_terminationDelta = terminationDelta;
+	}
+
+	/*
+		Returns a vector with the voxels in the given cluster
+		@param clusterIdx the index of the required cluster
+	*/
+	std::vector<cv::Point3f> getClusterVoxels(int clusterIdx)
+	{
+		std::vector<cv::Point3f> voxels;
+		for (int i = 0; i < m_visible_voxels.size(); i++) if ((int)(m_clusterLabels[i]) == clusterIdx)
+			voxels.push_back(cv::Point3f(m_visible_voxels[i]->x, m_visible_voxels[i]->y, m_visible_voxels[i]->z));
+		return voxels;
 	}
 };
 

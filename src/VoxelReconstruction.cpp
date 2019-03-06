@@ -122,6 +122,7 @@ void VoxelReconstruction::run(int argc, char** argv)
 	Reconstructor reconstructor(m_cam_views, m_voxelStepSize);
 	reconstructor.setParams(m_clusterEpochs, m_clusterCount, m_terminationDelta); // passes clustering parameters
 	Scene3DRenderer scene3d(reconstructor, m_cam_views);
+	scene3d.setHSVThreshold(m_h_thrs, m_s_thrs, m_v_thrs);
 	Glut glut(scene3d);
 
 #ifdef __linux__
