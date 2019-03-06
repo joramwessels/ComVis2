@@ -9,7 +9,7 @@
 #include "controllers/Reconstructor.h"
 #include "controllers/Scene3DRenderer.h"
 
-//#include <climits>
+#include <climits>
 
 #include "GradientDescent.h"
 
