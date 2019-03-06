@@ -189,6 +189,45 @@ void Reconstructor::update()
 	}
 
 	m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
+
+	cluster();
+}
+
+/*
+	Clusters the visible voxels and colors them respectively
+*/
+void Reconstructor::cluster()
+{
+	// Collecting voxels
+	printf("Collecting voxels...");
+	int N = m_visible_voxels.size();
+	cv::Mat dataPoints = cv::Mat(N, 3, CV_32F);
+	for (int i = 0; i < N; i++)
+	{
+		dataPoints.row(i) = cv::Mat(1, 3, CV_32F, {
+			(double)m_visible_voxels[i]->x, (double)m_visible_voxels[i]->y, (double)m_visible_voxels[i]->z
+		});
+	}
+
+	// Clustering voxels
+	printf("Clustering voxels...");
+	cv::Mat labels = cv::Mat(N, 1, CV_32S);
+	TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
+	cv::kmeans(dataPoints, m_clusterCount, labels, terminationCriteria, m_clusterEpochs, KMEANS_RANDOM_CENTERS);
+
+	// Coloring voxels
+	printf("Coloring voxels...\n");
+	uint color;
+	for (int i = 0; i < N; i++)
+	{
+		// TODO cluster doesn't retain same color
+		if (labels.at<int>(i) == 0) color = 0xFF0000;//cv::Scalar(255, 0, 0);
+		if (labels.at<int>(i) == 1) color = 0xFF00;//cv::Scalar(0, 255, 0);
+		if (labels.at<int>(i) == 2) color = 0xFF;//cv::Scalar(0, 0, 255);
+		if (labels.at<int>(i) == 3) color = 0xFFFF;//cv::Scalar(0, 255, 255);
+		//m_visible_voxels[i]->color = color;
+		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
+	}
 }
 
 } /* namespace nl_uu_science_gmt */

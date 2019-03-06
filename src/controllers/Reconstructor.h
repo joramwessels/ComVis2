@@ -47,6 +47,12 @@ private:
 
 	void initialize();
 
+	// clustering
+	void cluster();
+	int m_clusterEpochs;
+	int m_clusterCount;
+	double m_terminationDelta;
+
 public:
 	Reconstructor(
 			const std::vector<Camera*> &, int voxelStep=64);
@@ -89,6 +95,19 @@ public:
 	const cv::Size& getPlaneSize() const
 	{
 		return m_plane_size;
+	}
+
+	/*
+	Sets clustering parameters
+	@param clusterEpochs the number of clustering attempts to average
+	@param clusterCount the number of clusters to find
+	@param terminationDelta the change in cluster centroid at which to terminate the clustering
+	*/
+	void setParams(int clusterEpochs, int clusterCount, double terminationDelta)
+	{
+		m_clusterEpochs = clusterEpochs;
+		m_clusterCount = clusterCount;
+		m_terminationDelta = terminationDelta;
 	}
 };
 
