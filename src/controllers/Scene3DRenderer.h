@@ -413,7 +413,7 @@ public:
 		return m_square_side_len;
 	}
 
-	void setHSVThreshold(int h, int s, int v) { m_h_threshold = h; m_s_threshold = s; m_v_threshold = v; }
+	void setHSVThreshold(int h, int s, int v);
 };
 
 } /* namespace nl_uu_science_gmt */

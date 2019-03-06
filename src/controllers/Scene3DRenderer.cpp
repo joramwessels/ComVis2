@@ -220,4 +220,14 @@ void Scene3DRenderer::createFloorGrid()
 	m_floor_grid.push_back(edge4);
 }
 
+void Scene3DRenderer::setHSVThreshold(int h, int s, int v)
+{
+	m_ph_threshold, m_h_threshold = h;
+	m_ps_threshold, m_s_threshold = s;
+	m_pv_threshold, m_v_threshold = v;
+	setTrackbarPos("H", VIDEO_WINDOW, m_h_threshold);
+	setTrackbarPos("S", VIDEO_WINDOW, m_s_threshold);
+	setTrackbarPos("V", VIDEO_WINDOW, m_v_threshold);
+}
+
 } /* namespace nl_uu_science_gmt */
