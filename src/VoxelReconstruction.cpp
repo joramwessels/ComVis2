@@ -120,35 +120,7 @@ void VoxelReconstruction::run(int argc, char** argv)
 	namedWindow(VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
 
 	Reconstructor reconstructor(m_cam_views, m_voxelStepSize);
-	reconstructor.setParams(m_clusterEpochs, m_clusterCount, m_terminationDelta);
-
-	//// Collecting voxels
-	//printf("Collecting voxels...\n");
-	//std::vector<Reconstructor::Voxel*> reconVoxels = reconstructor.getVisibleVoxels();
-	//int N = reconVoxels.size();
-	//cv::Mat voxels = cv::Mat(N, 3, CV_32F);
-	//for (int i = 0; i < N; i++)
-	//	voxels.row(i) = cv::Mat(1, 3, CV_32F, { (double)reconVoxels[i]->x, (double)reconVoxels[i]->y, (double)reconVoxels[i]->z });
-	//
-	//// Clustering voxels
-	//printf("Clustering voxels...\n");
-	//cv::Mat labels = cv::Mat(N, 1, CV_32S);
-	//TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
-	//cv::kmeans(voxels, m_clusterCount, labels, terminationCriteria, m_clusterEpochs, KMEANS_RANDOM_CENTERS);
-	//
-	//// Coloring voxels
-	//printf("Coloring voxels...\n");
-	//for (int i = 0; i < N; i++)
-	//{
-	//	// TODO cluster doesn't retain same color
-	//	cv::Scalar color;
-	//	if (labels.at<int>(i) == 0) color = cv::Scalar(255, 0, 0);
-	//	if (labels.at<int>(i) == 1) color = cv::Scalar(0, 255, 0);
-	//	if (labels.at<int>(i) == 2) color = cv::Scalar(0, 0, 255);
-	//	if (labels.at<int>(i) == 3) color = cv::Scalar(0, 255, 255);
-	//	reconVoxels[i]->color = color;
-	//}
-
+	reconstructor.setParams(m_clusterEpochs, m_clusterCount, m_terminationDelta); // passes clustering parameters
 	Scene3DRenderer scene3d(reconstructor, m_cam_views);
 	Glut glut(scene3d);
 

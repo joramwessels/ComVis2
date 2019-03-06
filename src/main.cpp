@@ -151,7 +151,7 @@ int main(int argc, char** argv)
 {
 	VoxelReconstruction::showKeys();
 	VoxelReconstruction vr("data/4persons" + std::string(PATH_SEP), 4);
-	vr.setParams(64, 10, 4, 0.01);
+	vr.setParams(64, 30, 4, 0.001); // passing clustering parameters
 	vr.run(argc, argv);
 
 	return EXIT_SUCCESS;

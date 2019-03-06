@@ -213,7 +213,7 @@ void Reconstructor::cluster()
 	printf("Clustering voxels...");
 	cv::Mat labels = cv::Mat(N, 1, CV_32S);
 	TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
-	cv::kmeans(dataPoints, m_clusterCount, labels, terminationCriteria, m_clusterEpochs, KMEANS_RANDOM_CENTERS);
+	cv::kmeans(dataPoints, m_clusterCount, labels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS);// KMEANS_RANDOM_CENTERS);
 
 	// Coloring voxels
 	printf("Coloring voxels...\n");
