@@ -26,10 +26,10 @@ namespace nl_uu_science_gmt
  * Voxel reconstruction class
  */
 Reconstructor::Reconstructor(
-		const vector<Camera*> &cs) :
+		const vector<Camera*> &cs, int voxelStep) :
 				m_cameras(cs),
 				m_height(2048),
-				m_step(32)
+				m_step(voxelStep)
 {
 	for (size_t c = 0; c < m_cameras.size(); ++c)
 	{

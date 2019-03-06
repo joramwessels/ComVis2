@@ -149,35 +149,10 @@ cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &ba
 
 int main(int argc, char** argv)
 {
-	// ORIGINAL CODE
-	//VoxelReconstruction::showKeys();
-	//VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
-	//vr.run(argc, argv);
+	VoxelReconstruction::showKeys();
+	VoxelReconstruction vr("data/4persons" + std::string(PATH_SEP), 4);
+	vr.setParams(64, 10, 4, 0.01);
+	vr.run(argc, argv);
 
-	const char* filename = "data/gradientDescentOutput.txt";
-	int rotationSpeed = 30;
-
-	// Initializing cameras
-	VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
-	std::vector<nl_uu_science_gmt::Camera*> cameras = vr.getCameras();
-	for (int v = 0; v < 4; ++v)
-	{
-		bool has_cam = Camera::detExtrinsics(cameras[v]->getDataPath(), General::CheckerboadVideo,
-			General::IntrinsicsFile, cameras[v]->getCamPropertiesFile());
-		assert(has_cam);
-		cameras[v]->initialize();
-	}
-
-	// Presenting results in 3D scene
-	cv::namedWindow(VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
-	nl_uu_science_gmt::Reconstructor reconstructor(cameras);
-	nl_uu_science_gmt::Scene3DRenderer scene3d(reconstructor, cameras);
-	nl_uu_science_gmt::Glut glut(scene3d);
-	glut.initializeWindows(SCENE_WINDOW.c_str());
-	while (!scene3d.isQuit())
-	{
-		glut.update(0);
-		glut.display();
-	}
 	return EXIT_SUCCESS;
 }

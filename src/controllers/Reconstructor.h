@@ -49,7 +49,7 @@ private:
 
 public:
 	Reconstructor(
-			const std::vector<Camera*> &);
+			const std::vector<Camera*> &, int voxelStep=64);
 	virtual ~Reconstructor();
 
 	void update();
