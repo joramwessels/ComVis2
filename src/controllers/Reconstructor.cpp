@@ -29,7 +29,7 @@ Reconstructor::Reconstructor(
 		const vector<Camera*> &cs) :
 				m_cameras(cs),
 				m_height(2048),
-				m_step(64)
+				m_step(32)
 {
 	for (size_t c = 0; c < m_cameras.size(); ++c)
 	{
@@ -90,7 +90,7 @@ void Reconstructor::initialize()
 	m_corners.push_back(new Point3f((float) xR, (float) yL, (float) zR));
 
 	// Acquire some memory for efficiency
-	cout << "Initializing " << m_voxels_amount << " voxels ";
+	cout << "Initializing " << m_voxels_amount << " voxels: ";
 	m_voxels.resize(m_voxels_amount);
 
 	int z;
@@ -105,7 +105,11 @@ void Reconstructor::initialize()
 		if (done > pdone)
 		{
 			pdone = done;
+#ifdef _WIN32
+			printf("%2d%%\b\b\b", done);
+#else
 			cout << done << "%..." << flush;
+#endif
 		}
 
 		int y, x;
@@ -145,7 +149,7 @@ void Reconstructor::initialize()
 		}
 	}
 
-	cout << "done!" << endl;
+	cout << "\tdone!" << endl;
 }
 
 /**
