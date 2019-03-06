@@ -213,7 +213,14 @@ void Reconstructor::cluster()
 	printf("Clustering voxels...");
 	m_clusterLabels.clear();
 	TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
-	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS);// KMEANS_RANDOM_CENTERS);
+	float centrArray[12] = {
+		1.0f, 1.0f, 0.0f,
+		-1.0f, 1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		-1.0f, -1.0f, 0.0f
+	};
+	cv::Mat centroids = cv::Mat(4, 3, CV_32F, centrArray);
+	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS, centroids);
 
 	// Coloring voxels
 	printf("Coloring voxels...\n");
@@ -228,6 +235,12 @@ void Reconstructor::cluster()
 		//m_visible_voxels[i]->color = color;
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
+
+	for (int i = 0; i < 4; i++) // DEBUG
+		printf("centroid%i: %.2f, %.2f, %.2f\n", i,
+			centroids.at<float>(i, 0),
+			centroids.at<float>(i, 1),
+			centroids.at<float>(i, 2));
 }
 
 } /* namespace nl_uu_science_gmt */
