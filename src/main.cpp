@@ -147,6 +147,32 @@ cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &ba
 	}
 }
 
+cv::Vec3b averageColor(cv::Mat foreground, cv::Mat reference, cv::Vec3b referenceColor) {
+	int pixelCount = 0;
+	cv::Vec3i colors = cv::Vec3i(0, 0, 0);
+
+	for (int r = 0; r < reference.rows; r++) {
+		for (int c = 0; c < reference.cols; c++) {
+			cv::Vec3b px = reference.at<cv::Vec3b>(r, c);
+			if (px[0] == referenceColor[0] && px[1] == referenceColor[1] && px[2] == referenceColor[2]) {
+				colors[0] += foreground.at<cv::Vec3b>(r, c)[0];
+				colors[1] += foreground.at<cv::Vec3b>(r, c)[1];
+				colors[2] += foreground.at<cv::Vec3b>(r, c)[2];
+				pixelCount++;
+			}
+		}
+	}
+
+	cv::Vec3b result = cv::Vec3b(0, 0, 0);
+	if (pixelCount > 0) {
+		result[0] = (uchar)(colors[0] / pixelCount);
+		result[1] = (uchar)(colors[1] / pixelCount);
+		result[2] = (uchar)(colors[2] / pixelCount);
+	}
+
+	return result;
+}
+
 int main(int argc, char** argv)
 {
 	VoxelReconstruction::showKeys();
