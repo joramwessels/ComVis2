@@ -198,26 +198,20 @@ void Reconstructor::update()
 */
 void Reconstructor::cluster()
 {
+	assert(m_clusterCount > 0);
+
 	// Collecting voxels
 	printf("Collecting voxels...");
 	int N = m_visible_voxels.size();
 	std::vector<cv::Point2f> dataPoints;
 	for (int i = 0; i < N; i++)
-	{
 		dataPoints.push_back(cv::Point2f((float)m_visible_voxels[i]->x, (float)m_visible_voxels[i]->y));
-	}
 
 	// Clustering voxels
 	printf("Clustering voxels...");
-	m_clusterLabels.clear();
 	TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
-	float centrArray[12] = {
-		1.0f, 1.0f,// 0.0f,
-		-1.0f, 1.0f,// 0.0f,
-		1.0f, -1.0f,// 0.0f,
-		-1.0f, -1.0f//, 0.0f
-	};
-	cv::Mat centroids = cv::Mat(4, 2, CV_32F, centrArray);
+	cv::Mat centroids = cv::Mat(m_clusterCount, 2, CV_32F);
+	for (int i = 0; i < m_clusterCount; i++) centroids.row(i) = cv::Mat(1, 2, CV_32F, { (float)i, 0.0f });
 	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS, centroids);
 
 	// Coloring voxels
@@ -227,14 +221,16 @@ void Reconstructor::cluster()
 	{
 		// TODO cluster doesn't retain same color
 		if (m_clusterLabels[i] == 0) color = 0xFF0000;
-		if (m_clusterLabels[i] == 1) color = 0xFF00;
-		if (m_clusterLabels[i] == 2) color = 0xFF;
-		if (m_clusterLabels[i] == 3) color = 0xFFFF00;
+		else if (m_clusterLabels[i] == 1) color = 0xFF00;
+		else if (m_clusterLabels[i] == 2) color = 0xFF;
+		else if (m_clusterLabels[i] == 3) color = 0xFFFF00;
+		else if (m_clusterLabels[i] == 4) color = 0x00FFFF;
+		else if (m_clusterLabels[i] == 5) color = 0xFF00FF;
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
-	for (int i = 0; i < 4; i++) // DEBUG
-		printf("centroid%i: %.2f, %.2f, %.2f\n", i,
+	for (int i = 0; i < m_clusterCount; i++) // DEBUG
+		printf("centroid%i: %.2f, %.2f 0.0\n", i,
 			centroids.at<float>(i, 0),
 			centroids.at<float>(i, 1));
 }

@@ -106,6 +106,7 @@ public:
 	*/
 	void setParams(int clusterEpochs, int clusterCount, double terminationDelta)
 	{
+		assert(clusterCount < 7 && clusterCount > 0);
 		m_clusterEpochs = clusterEpochs;
 		m_clusterCount = clusterCount;
 		m_terminationDelta = terminationDelta;
