@@ -31,16 +31,21 @@ Reconstructor::Reconstructor(
 				m_height(2048),
 				m_step(voxelStep)
 {
+	m_voxel_pointers.resize(m_cameras.size());
 	for (size_t c = 0; c < m_cameras.size(); ++c)
 	{
 		if (m_plane_size.area() > 0)
 			assert(m_plane_size.width == m_cameras[c]->getSize().width && m_plane_size.height == m_cameras[c]->getSize().height);
 		else
 			m_plane_size = m_cameras[c]->getSize();
+
+		m_voxel_pointers[c].resize(m_plane_size.width * m_plane_size.height);
 	}
 
 	const size_t edge = 2 * m_height;
 	m_voxels_amount = (edge / m_step) * (edge / m_step) * (m_height / m_step);
+
+	Reconstructor::getSize();
 
 	initialize();
 }
@@ -139,8 +144,10 @@ void Reconstructor::initialize()
 					voxel->camera_projection[(int) c] = point;
 
 					// If it's within the camera's FoV, flag the projection
-					if (point.x >= 0 && point.x < m_plane_size.width && point.y >= 0 && point.y < m_plane_size.height)
-						voxel->valid_camera_projection[(int) c] = 1;
+					if (point.x >= 0 && point.x < m_plane_size.width && point.y >= 0 && point.y < m_plane_size.height) {
+						voxel->valid_camera_projection[(int)c] = 1;
+						m_voxel_pointers[c][point.x * point.y].push_back(voxel);
+					}
 				}
 
 				//Writing voxel 'p' is not critical as it's unique (thread safe)
@@ -159,11 +166,47 @@ void Reconstructor::initialize()
  */
 void Reconstructor::update()
 {
-	m_visible_voxels.clear();
+	//m_visible_voxels.clear();
 	std::vector<Voxel*> visible_voxels;
+
+
+
+
+
+
+	/* Voxels that were potentially changed from the last frame to the current.
+	These voxels should be updated to reflect any possible changes. */
+	std::vector<Voxel> changed_voxels;
+
+	for (int c = 0; c < m_cameras.size(); c++) {
+		cv::Mat changed_pixels = m_cameras[c]->getForegroundDifference();
+		for (int y = 0; y < changed_pixels.rows; y++) {
+			for (int x = 0; x < changed_pixels.cols; x++) {
+				// If the pixel was changed
+				if (changed_pixels.at<uchar>(y, x) == 255) {
+					for (int v = 0; v < m_voxel_pointers[c][x * y].size(); v++) {
+						changed_voxels.push_back(*m_voxel_pointers[c][x * y][v]);
+					}
+					//changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
+				}
+			}
+		}
+	}
+
+	//sort(changed_voxels.begin(), changed_voxels.end(), voxelSort); // Sort the list of potentially changed voxels
+	//printf("\n\n%d Before: ", changed_voxels.size());
+	//changed_voxels.erase(unique(changed_voxels.begin(), changed_voxels.end(), voxelPred), changed_voxels.end()); // Remove duplicates
+	//printf("\n%d After: ", changed_voxels.size());
+
+	printf("\nChanged voxels: %d", changed_voxels.size());
+
+
+
 
 	int v;
 #pragma omp parallel for schedule(auto) private(v) shared(visible_voxels)
+
+	// For every voxel
 	for (v = 0; v < (int) m_voxels_amount; ++v)
 	{
 		int camera_counter = 0;
@@ -201,21 +244,21 @@ void Reconstructor::cluster()
 	assert(m_clusterCount > 0);
 
 	// Collecting voxels
-	printf("Collecting voxels...");
+	//printf("Collecting voxels...");
 	int N = m_visible_voxels.size();
 	std::vector<cv::Point2f> dataPoints;
 	for (int i = 0; i < N; i++)
 		dataPoints.push_back(cv::Point2f((float)m_visible_voxels[i]->x, (float)m_visible_voxels[i]->y));
 
 	// Clustering voxels
-	printf("Clustering voxels...");
+	//printf("Clustering voxels...");
 	TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
 	cv::Mat centroids = cv::Mat(m_clusterCount, 2, CV_32F);
 	for (int i = 0; i < m_clusterCount; i++) centroids.row(i) = cv::Mat(1, 2, CV_32F, { (float)i, 0.0f });
 	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS, centroids);
 
 	// Coloring voxels
-	printf("Coloring voxels...\n");
+	//printf("Coloring voxels...\n");
 	uint color;
 	for (int i = 0; i < N; i++)
 	{
@@ -229,10 +272,10 @@ void Reconstructor::cluster()
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
-	for (int i = 0; i < m_clusterCount; i++) // DEBUG
-		printf("centroid%i: %.2f, %.2f 0.0\n", i,
-			centroids.at<float>(i, 0),
-			centroids.at<float>(i, 1));
+	//for (int i = 0; i < m_clusterCount; i++) // DEBUG
+	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
+	//		centroids.at<float>(i, 0),
+	//		centroids.at<float>(i, 1));
 }
 
 } /* namespace nl_uu_science_gmt */

@@ -53,7 +53,6 @@ cv::Mat averageFrame(const std::string &path) {
 	return result;
 }
 
-
 cv::Mat processForeground(cv::Mat foreground, cv::Mat background, uchar hThresh, uchar sThresh, uchar vThresh)
 {
 	cv::Mat foregroundHsv;
@@ -85,7 +84,7 @@ cv::Mat processForeground(cv::Mat foreground, cv::Mat background, uchar hThresh,
 }
 
 // Returns the amount of different elements in two equally sized matrices
-int matDiff(cv::Mat mat1, cv::Mat mat2) {
+int matDiffCount(cv::Mat mat1, cv::Mat mat2) {
 	cv::Mat result = mat1 - mat2;
 
 	int diff = 0;
@@ -103,7 +102,7 @@ int matDiff(cv::Mat mat1, cv::Mat mat2) {
 }
 
 // Returns the amount of different elements between two binary bitmaps
-int matDiffBinary(cv::Mat mat1, cv::Mat mat2) {
+int matDiffCountBinary(cv::Mat mat1, cv::Mat mat2) {
 	cv::Mat result;
 	bitwise_xor(mat1, mat2, result);
 
@@ -130,7 +129,7 @@ cv::Vec3b findHSVThresholds(cv::Mat &reference, cv::Mat &foreground, cv::Mat &ba
 				cv::Mat processed = processForeground(foreground, background, h, s, v);
 
 				cv::waitKey(0);
-				int diff = matDiffBinary(reference, processed);
+				int diff = matDiffCountBinary(reference, processed);
 				if (diff < bestDiff) {
 					bestDiff = diff;
 					thresholds[0] = h; thresholds[1] = s; thresholds[2] = v;
@@ -173,8 +172,25 @@ cv::Vec3b averageColor(cv::Mat foreground, cv::Mat reference, cv::Vec3b referenc
 	return result;
 }
 
+cv::Mat foregroundDiff(cv::Mat firstMat, cv::Mat secondMat, cv::Mat mask) {
+	cv::Mat result;
+	bitwise_xor(firstMat, secondMat, result, mask);
+	return result;
+}
+
 int main(int argc, char** argv)
 {
+	//std::vector<std::vector<std::vector<float>>> test;
+
+	//cv::Mat testMat1 = cv::imread("data/test/testimage1.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	//cv::Mat testMat2 = cv::imread("data/test/testimage2.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	//cv::Mat testMask = cv::imread("data/test/mask.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+
+	//cv::Mat diff = foregroundDiff(testMat1, testMat2, testMask);
+
+	//cv::imshow("Difference", diff);
+	//cv::waitKey(0);
+
 	VoxelReconstruction::showKeys();
 	VoxelReconstruction vr("data/4persons" + std::string(PATH_SEP), 4);
 	vr.setParams(64, 10, 4, 0.01); // passing clustering parameters

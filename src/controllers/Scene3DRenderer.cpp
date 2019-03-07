@@ -145,7 +145,14 @@ void Scene3DRenderer::processForeground(
 	threshold(tmp, background, m_v_threshold, 255, CV_THRESH_BINARY);
 	bitwise_or(foreground, background, foreground);
 
-	// Improve the foreground image
+	// TODO: Improve the foreground image
+
+	// Calculate and set the difference between last frame's and this frame's foreground area
+	if (!camera->getForegroundImage().empty()) {
+		cv::Mat diff;
+		bitwise_xor(camera->getForegroundImage(), foreground, diff);
+		camera->setForegroundDifference(diff);
+	}
 
 	camera->setForegroundImage(foreground);
 }

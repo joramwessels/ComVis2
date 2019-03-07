@@ -635,12 +635,14 @@ void Glut::update(
 	if (scene3d.getCurrentCamera() != -1)
 	{
 		canvas = scene3d.getCameras()[scene3d.getCurrentCamera()]->getFrame();
-		foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundImage();
+		//foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundImage();
+		foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundDifference();
 	}
 	else
 	{
 		canvas = scene3d.getCameras()[scene3d.getPreviousCamera()]->getFrame();
-		foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundImage();
+		//foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundImage();
+		foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundDifference();
 	}
 
 	// Concatenate the video frame with the foreground image (of set camera)

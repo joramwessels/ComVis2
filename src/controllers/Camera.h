@@ -21,37 +21,38 @@ namespace nl_uu_science_gmt
 
 class Camera
 {
-	static std::vector<cv::Point>* m_BoardCorners;  // marked checkerboard corners
+	static std::vector<cv::Point>* m_BoardCorners;					// Marked checkerboard corners
 
-	bool m_initialized;                             // Is this camera successfully initialized
+	bool m_initialized;												// Is this camera successfully initialized
 
-	const std::string m_data_path;                  // Path to data directory
-	const std::string m_cam_props_file;             // Camera properties filename
-	const int m_id;                                 // Camera ID
+	const std::string m_data_path;									// Path to data directory
+	const std::string m_cam_props_file;             				// Camera properties filename
+	const int m_id;                                 				// Camera ID
 
-	std::vector<cv::Mat> m_bg_hsv_channels;          // Background HSV channel images
-	cv::Mat m_foreground_image;                      // This camera's foreground image (binary)
+	std::vector<cv::Mat> m_bg_hsv_channels;							// Background HSV channel images
+	cv::Mat m_foreground_image;										// This camera's foreground image (binary)
+	cv::Mat m_foreground_difference;								// The difference (xor) between last frame's and current frame's foreground (binary)
 
-	cv::VideoCapture m_video;                        // Video reader
+	cv::VideoCapture m_video;										// Video reader
 
-	cv::Size m_plane_size;                           // Camera's FoV size
-	long m_frame_amount;                             // Amount of frames in this camera's video
+	cv::Size m_plane_size;											// Camera's FoV size
+	long m_frame_amount;											// Amount of frames in this camera's video
 
-	cv::Mat m_camera_matrix;                         // Camera matrix (3x3)
-	cv::Mat m_distortion_coeffs;                     // Distortion vector (5x1)
-	cv::Mat m_rotation_values;                       // Rotation vector (3x1)
-	cv::Mat m_translation_values;                    // Translation vector (3x1)
+	cv::Mat m_camera_matrix;										// Camera matrix (3x3)
+	cv::Mat m_distortion_coeffs;									// Distortion vector (5x1)
+	cv::Mat m_rotation_values;										// Rotation vector (3x1)
+	cv::Mat m_translation_values;									// Translation vector (3x1)
 
-	float m_fx, m_fy, m_cx, m_cy;                   // Focal lenghth (fx, fy), camera center (cx, cy)
+	float m_fx, m_fy, m_cx, m_cy;                   				// Focal lenghth (fx, fy), camera center (cx, cy)
 
-	cv::Mat m_rt;                                    // R matrix
-	cv::Mat m_inverse_rt;                            // R's inverse matrix
+	cv::Mat m_rt;													// R matrix
+	cv::Mat m_inverse_rt;											// R's inverse matrix
 
-	cv::Point3f m_camera_location;                   // Camera location in the 3D space
-	std::vector<cv::Point3f> m_camera_plane;         // Camera plane of view
-	std::vector<cv::Point3f> m_camera_floor;         // Projection of the camera itself onto the ground floor view
+	cv::Point3f m_camera_location;									// Camera location in the 3D space
+	std::vector<cv::Point3f> m_camera_plane;						// Camera plane of view
+	std::vector<cv::Point3f> m_camera_floor;						// Projection of the camera itself onto the ground floor view
 
-	cv::Mat m_frame;                                 // Current video frame (image)
+	cv::Mat m_frame;												// Current video frame (image)
 
 	static void onMouse(int, int, int, int, void*);
 	void initCamLoc();
@@ -128,6 +129,16 @@ public:
 	void setForegroundImage(const cv::Mat& foregroundImage)
 	{
 		m_foreground_image = foregroundImage;
+	}
+
+	const cv::Mat& getForegroundDifference() const
+	{
+		return m_foreground_difference;
+	}
+
+	void setForegroundDifference(const cv::Mat& foregroundDifference)
+	{
+		m_foreground_difference = foregroundDifference;
 	}
 
 	const cv::Mat& getFrame() const

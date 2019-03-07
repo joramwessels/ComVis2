@@ -26,13 +26,17 @@ public:
 	 */
 	struct Voxel
 	{
-		int x, y, z;                               // Coordinates
-		cv::Scalar color;                          // Color
-		std::vector<cv::Point> camera_projection;  // Projection location for camera[c]'s FoV (2D)
-		std::vector<int> valid_camera_projection;  // Flag if camera projection is in camera[c]'s FoV
+		int x, y, z;								// Coordinates
+		cv::Scalar color;							// Color
+		std::vector<cv::Point> camera_projection;	// Projection location for camera[c]'s FoV (2D)
+		std::vector<int> valid_camera_projection;	// Flag if camera projection is in camera[c]'s FoV
 	};
 
 private:
+	/* Pointers to all voxels corresponding to a pixel of a specific camera.
+	Usage: voxel_pointers[camera][pixel x*y][voxels] */
+	std::vector<std::vector<std::vector<Voxel*>>> m_voxel_pointers;
+
 	const std::vector<Camera*> &m_cameras;  // vector of pointers to cameras
 	const int m_height;                     // Cube half-space height from floor to ceiling
 	const int m_step;                       // Step size (space between voxels)
@@ -60,6 +64,21 @@ public:
 	virtual ~Reconstructor();
 
 	void update();
+
+	// Returns which of two voxels should come first in an ordered voxel list
+	static bool voxelSort(Voxel &a, Voxel &b) {
+		if (a.x != b.x)
+			return a.x > b.x;
+		else if (a.y != b.y)
+			return a.y > b.y;
+		else
+			return a.z > b.z;
+	}
+
+	// Returns whether two voxels are the same
+	static bool voxelPred(const Voxel &a, const Voxel &b) {
+		return a.x == b.x && a.y == b.y && a.z == b.z;
+	}
 
 	const std::vector<Voxel*>& getVisibleVoxels() const
 	{
