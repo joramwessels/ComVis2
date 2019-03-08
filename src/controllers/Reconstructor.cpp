@@ -195,7 +195,8 @@ void Reconstructor::update()
 	// Voxels that were potentially changed from the last frame to the current.
 	// These voxels should be updated to reflect any possible changes.
 	std::vector<Voxel*> changed_voxels;
-	for (int c = 0; c < m_cameras.size(); c++) {
+	int cameraCount = (int)m_cameras.size();
+	for (int c = 0; c < cameraCount; c++) {
 		cv::Mat changed_pixels = m_cameras[c]->getForegroundDifference();
 		for (int y = 0; y < changed_pixels.rows; y++) for (int x = 0; x < changed_pixels.cols; x++) {
 			if (changed_pixels.at<uchar>(y, x) == 255) {
@@ -214,7 +215,7 @@ void Reconstructor::update()
 		int camera_counter = 0;
 		Voxel* voxel = changed_voxels[v];
 
-		for (size_t c = 0; c < m_cameras.size(); ++c)
+		for (int c = 0; c < cameraCount; ++c)
 		{
 			if (voxel->valid_camera_projection[c])
 			{
@@ -227,11 +228,12 @@ void Reconstructor::update()
 
 		// checking if voxel is already in the visible voxels vector
 		int voxIndex = -1, vixVoxCount = m_visible_voxels.size();
+		//size_t voxIndex = std::find(m_visible_voxels.begin(), m_visible_voxels.end(), voxel);
 		for (int i = 0; i < vixVoxCount; i++) if (m_visible_voxels[i] == voxel) { voxIndex = i; break; }
 
 #pragma omp critical
 		// Updating visible voxels vector accordingly
-		bool active = (camera_counter == (int)m_cameras.size()), inVector = (voxIndex != -1);
+		bool active = (camera_counter == cameraCount), inVector = (voxIndex != -1);
 		if (active && !inVector) m_visible_voxels.push_back(voxel);
 		if (!active && inVector) m_visible_voxels.erase(m_visible_voxels.begin() + voxIndex);
 	}
