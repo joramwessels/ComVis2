@@ -59,6 +59,13 @@ private:
 	int m_clusterEpochs;
 	int m_clusterCount;
 	double m_terminationDelta;
+	cv::Vec3b m_avgColorReference[4] = {
+		cv::Vec3b(78, 72, 53), cv::Vec3b(43, 38, 26),
+		cv::Vec3b(72, 66, 53), cv::Vec3b(85, 72, 50)
+	};
+
+	cv::Vec3b getAverageColor(int clusterIdx);
+	std::vector<int> findBestModelMatches(std::vector<cv::Vec3b> avgColors);
 
 public:
 	Reconstructor(
