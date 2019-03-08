@@ -166,7 +166,7 @@ void Reconstructor::initialize()
  */
 void Reconstructor::update()
 {
-	//m_visible_voxels.clear();
+	m_visible_voxels.clear();
 	std::vector<Voxel*> visible_voxels;
 
 
