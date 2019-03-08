@@ -174,31 +174,31 @@ void Reconstructor::update()
 
 
 
-	/* Voxels that were potentially changed from the last frame to the current.
-	These voxels should be updated to reflect any possible changes. */
-	std::vector<Voxel> changed_voxels;
+	//// Voxels that were potentially changed from the last frame to the current.
+	////These voxels should be updated to reflect any possible changes.
+	//std::vector<Voxel> changed_voxels;
 
-	for (int c = 0; c < m_cameras.size(); c++) {
-		cv::Mat changed_pixels = m_cameras[c]->getForegroundDifference();
-		for (int y = 0; y < changed_pixels.rows; y++) {
-			for (int x = 0; x < changed_pixels.cols; x++) {
-				// If the pixel was changed
-				if (changed_pixels.at<uchar>(y, x) == 255) {
-					for (int v = 0; v < m_voxel_pointers[c][x * y].size(); v++) {
-						changed_voxels.push_back(*m_voxel_pointers[c][x * y][v]);
-					}
-					//changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
-				}
-			}
-		}
-	}
+	//for (int c = 0; c < m_cameras.size(); c++) {
+	//	cv::Mat changed_pixels = m_cameras[c]->getForegroundDifference();
+	//	for (int y = 0; y < changed_pixels.rows; y++) {
+	//		for (int x = 0; x < changed_pixels.cols; x++) {
+	//			// If the pixel was changed
+	//			if (changed_pixels.at<uchar>(y, x) == 255) {
+	//				for (int v = 0; v < m_voxel_pointers[c][x * y].size(); v++) {
+	//					changed_voxels.push_back(*m_voxel_pointers[c][x * y][v]);
+	//				}
+	//				//changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
+	//			}
+	//		}
+	//	}
+	//}
 
-	//sort(changed_voxels.begin(), changed_voxels.end(), voxelSort); // Sort the list of potentially changed voxels
-	//printf("\n\n%d Before: ", changed_voxels.size());
-	//changed_voxels.erase(unique(changed_voxels.begin(), changed_voxels.end(), voxelPred), changed_voxels.end()); // Remove duplicates
-	//printf("\n%d After: ", changed_voxels.size());
+	////sort(changed_voxels.begin(), changed_voxels.end(), voxelSort); // Sort the list of potentially changed voxels
+	////printf("\n\n%d Before: ", changed_voxels.size());
+	////changed_voxels.erase(unique(changed_voxels.begin(), changed_voxels.end(), voxelPred), changed_voxels.end()); // Remove duplicates
+	////printf("\n%d After: ", changed_voxels.size());
 
-	printf("\nChanged voxels: %d", changed_voxels.size());
+	//printf("\nChanged voxels: %d", changed_voxels.size());
 
 
 
