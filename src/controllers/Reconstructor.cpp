@@ -262,7 +262,7 @@ void Reconstructor::update()
 //
 //	m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
 
-	cluster();
+	//cluster();
 }
 
 /*
