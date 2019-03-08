@@ -178,8 +178,58 @@ cv::Mat foregroundDiff(cv::Mat firstMat, cv::Mat secondMat, cv::Mat mask) {
 	return result;
 }
 
+// Erodes a bitmap image.
+// Types: 0 = rectangle, 1 = cross, 2 = ellipse
+// Actual size: 2 * size + 1
+cv::Mat erodeBitmap(cv::Mat bitmap, int type, int size, int repeat = 1, bool show = false) {
+	cv::Mat result = bitmap.clone();
+	cv::Mat element = cv::getStructuringElement(type, cv::Size(2 * size + 1, 2 * size + 1), cv::Point(size, size));
+
+	for (int i = 0; i < repeat; i++) {
+		erode(result, result, element);
+	}
+
+	if (show) {
+		cv::imshow("Erosion result", result);
+		cv::waitKey(0);
+	}
+
+	return result;
+}
+
+// Dilates a bitmap image.
+// Types: 0 = rectangle, 1 = cross, 2 = ellipse
+// Actual size: 2 * size + 1
+cv::Mat dilateBitmap(cv::Mat bitmap, int type, int size, int repeat = 1, bool show = false) {
+	cv::Mat result = bitmap.clone();
+	cv::Mat element = cv::getStructuringElement(type, cv::Size(2 * size + 1, 2 * size + 1), cv::Point(size, size));
+
+	for (int i = 0; i < repeat; i++) {
+		dilate(result, result, element);
+	}
+
+	if (show) {
+		cv::imshow("Dilation result", result);
+		cv::waitKey(0);
+	}
+
+	return result;
+}
+
 int main(int argc, char** argv)
 {
+	cv::Vec3b thresholds = cv::Vec3b{ 5, 23, 52 };
+
+	for (int i = 1; i <= 4; ++i) {
+		cv::Mat foreground = cv::imread("data/4persons/cam" + std::to_string(i) + "/foreground.png");
+		cv::Mat background = cv::imread("data/4persons/cam" + std::to_string(i) + "/background.png");
+		cv::Mat reference = cv::imread("data/4persons/cam" + std::to_string(i) + "/reference.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+		cv::Mat processed = processForeground(foreground, background, thresholds[0], thresholds[1], thresholds[2]);
+		processed = dilateBitmap(processed, cv::MORPH_ELLIPSE, 2, 1, true);
+		processed = erodeBitmap(processed, cv::MORPH_CROSS, 6, 1, true);
+		processed = dilateBitmap(processed, cv::MORPH_ELLIPSE, 4, 1, true);
+	}
+
 	//std::vector<std::vector<std::vector<float>>> test;
 
 	//cv::Mat testMat1 = cv::imread("data/test/testimage1.bmp", CV_LOAD_IMAGE_GRAYSCALE);
@@ -191,11 +241,11 @@ int main(int argc, char** argv)
 	//cv::imshow("Difference", diff);
 	//cv::waitKey(0);
 
-	VoxelReconstruction::showKeys();
-	VoxelReconstruction vr("data/4persons" + std::string(PATH_SEP), 4);
-	vr.setParams(64, 10, 4, 0.01); // passing clustering parameters
-	vr.setHSVThresholds(5, 25, 52);
-	vr.run(argc, argv);
+	//VoxelReconstruction::showKeys();
+	//VoxelReconstruction vr("data/4persons" + std::string(PATH_SEP), 4);
+	//vr.setParams(64, 10, 4, 0.01); // passing clustering parameters
+	//vr.setHSVThresholds(5, 25, 52);
+	//vr.run(argc, argv);
 
 	return EXIT_SUCCESS;
 }
