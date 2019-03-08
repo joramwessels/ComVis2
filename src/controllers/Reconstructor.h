@@ -26,6 +26,7 @@ public:
 	 */
 	struct Voxel
 	{
+		bool active = false;						// Whether or not the voxel should be drawn
 		int x, y, z;								// Coordinates
 		cv::Scalar color;							// Color
 		std::vector<cv::Point> camera_projection;	// Projection location for camera[c]'s FoV (2D)
@@ -64,6 +65,8 @@ public:
 	virtual ~Reconstructor();
 
 	void update();
+
+	void initVoxelColoring();
 
 	// Returns which of two voxels should come first in an ordered voxel list
 	static bool voxelSort(Voxel &a, Voxel &b) {
