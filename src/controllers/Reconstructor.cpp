@@ -261,18 +261,23 @@ void Reconstructor::cluster()
 	for (int i = 0; i < m_clusterCount; i++) centroids.row(i) = cv::Mat(1, 2, CV_32F, { (float)i, 0.0f });
 	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS, centroids);
 
+	// Matching clusters with reference color models
+	std::vector<cv::Vec3b> avgColors = std::vector<cv::Vec3b>(m_clusterCount);
+	for (int i = 0; i < m_clusterCount; i++) avgColors[i] = getAverageColor(i);
+	std::vector<int> clusterIdx = findBestModelMatches(avgColors);
+
 	// Coloring voxels
 	//printf("Coloring voxels...\n");
 	uint color;
 	for (int i = 0; i < N; i++)
 	{
 		// TODO cluster doesn't retain same color
-		if (m_clusterLabels[i] == 0) color = 0xFF0000;
-		else if (m_clusterLabels[i] == 1) color = 0xFF00;
-		else if (m_clusterLabels[i] == 2) color = 0xFF;
-		else if (m_clusterLabels[i] == 3) color = 0xFFFF00;
-		else if (m_clusterLabels[i] == 4) color = 0x00FFFF;
-		else if (m_clusterLabels[i] == 5) color = 0xFF00FF;
+		if (clusterIdx[m_clusterLabels[i]] == 0) color = 0xFF0000;
+		else if (clusterIdx[m_clusterLabels[i]] == 1) color = 0xFF00;
+		else if (clusterIdx[m_clusterLabels[i]] == 2) color = 0xFF;
+		else if (clusterIdx[m_clusterLabels[i]] == 3) color = 0xFFFF00;
+		else if (clusterIdx[m_clusterLabels[i]] == 4) color = 0x00FFFF;
+		else if (clusterIdx[m_clusterLabels[i]] == 5) color = 0xFF00FF;
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
@@ -280,6 +285,71 @@ void Reconstructor::cluster()
 	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
 	//		centroids.at<float>(i, 0),
 	//		centroids.at<float>(i, 1));
+}
+
+/*
+	Computes the average color of the projected voxel cluster over all cameras
+	@param clusterIdx the cluster for which to get the average color
+*/
+cv::Vec3b Reconstructor::getAverageColor(int clusterIdx)
+{
+	std::vector<cv::Vec3b> pixels;
+	int voxelCount = (int)m_visible_voxels.size(), cameraCount = m_cameras.size();
+//#pragma omp parallel for schedule (auto) private(i) shared(pixels)
+	for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
+		for (int c = 0; c < cameraCount; c++)
+		{
+			cv::Point pixId = m_visible_voxels[i]->camera_projection[c];
+			cv::Mat frame = m_cameras[c]->getFrame();
+//#pragma omp critical
+			pixels.push_back(frame.at<Vec3b>(pixId.y, pixId.x));
+		}
+	}
+	cv::Vec3i sum;
+	int pixelCount = pixels.size();
+	for (int i = 0; i < pixelCount; i++) sum += pixels[i];
+	return cv::Vec3b(sum[0] / pixelCount, sum[1] / pixelCount, sum[2] / pixelCount);
+}
+
+/*
+	Finds the best matching color model
+	@param avgColor the average color of the voxel cluster projections
+*/
+std::vector<int> Reconstructor::findBestModelMatches(std::vector<cv::Vec3b> avgColors)
+{
+	std::vector<int> clustAssignment = std::vector<int>(m_clusterCount);
+	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
+
+	int i = 0;
+	std::vector<float> sumOfSquares;
+	while (std::next_permutation(clustAssignment.begin(), clustAssignment.end()))
+	{
+		sumOfSquares.push_back(0);
+		for (int j = 0; j < m_clusterCount; j++)
+		{
+			cv::Vec3i err = avgColors[j] - m_avgColorReference[clustAssignment[j]];
+			sumOfSquares[i] += err.dot(err);
+		}
+		i++;
+	}
+	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
+	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
+	for (int i = 0; i < bestIndex; i++) std::next_permutation(clustAssignment.begin(), clustAssignment.end());
+	return clustAssignment;
+
+	//int bestMatch = -1;
+	//float closestDist = -1.0;
+	//for (int i = 0; i < m_clusterCount; i++)
+	//{
+	//	cv::Vec3b err = cv::Vec3b(avgColor[0] - m_avgColorReference[i][0], avgColor[1] - m_avgColorReference[i][1], avgColor[2] - m_avgColorReference[i][2]);
+	//	float length = sqrt(err.dot(err));
+	//	if (closestDist == -1.0 || length < closestDist)
+	//	{
+	//		bestMatch = i;
+	//		closestDist = length;
+	//	}
+	//}
+	//return bestMatch;
 }
 
 /*
