@@ -155,12 +155,12 @@ void Reconstructor::initialize()
 			}
 		}
 	}
-
+	
 	cout << "\tdone!" << endl;
 }
 
-void Reconstructor::initVoxelColoring() {
-	printf("\n\nVoxel count: %d", m_voxels_amount);
+void Reconstructor::initVoxelColoring() { // TODO never gets called?
+	printf("\n\nVoxel count: %d", (int)m_voxels_amount);
 	// For every voxel
 	for (int v = 0; v < (int)m_voxels_amount; ++v)
 	{
@@ -178,7 +178,7 @@ void Reconstructor::initVoxelColoring() {
 			}
 		}
 
-		voxel->active = (camera_counter == m_cameras.size());
+		//voxel->active = (camera_counter == m_cameras.size());
 	}
 }
 
@@ -189,24 +189,24 @@ void Reconstructor::initVoxelColoring() {
  */
 void Reconstructor::update()
 {
-	/* Voxels that were potentially changed from the last frame to the current.
-	These voxels should be updated to reflect any possible changes. */
-	std::vector<Voxel*> changed_voxels;
+	// Initialize visible voxels vector
+	if (m_visible_voxels.size() == 0) { initVisibleVoxels(); return; }
 
+	// Voxels that were potentially changed from the last frame to the current.
+	// These voxels should be updated to reflect any possible changes.
+	std::vector<Voxel*> changed_voxels;
 	for (int c = 0; c < m_cameras.size(); c++) {
 		cv::Mat changed_pixels = m_cameras[c]->getForegroundDifference();
-		for (int y = 0; y < changed_pixels.rows; y++) {
-			for (int x = 0; x < changed_pixels.cols; x++) {
-				if (changed_pixels.at<uchar>(y, x) == 255) {
-					changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
-				}
+		for (int y = 0; y < changed_pixels.rows; y++) for (int x = 0; x < changed_pixels.cols; x++) {
+			if (changed_pixels.at<uchar>(y, x) == 255) {
+				changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
 			}
 		}
 	}
 
 	int v;
-	int changed_voxel_count = changed_voxels.size();
-#pragma omp parallel for schedule(auto) private(v) shared(changed_voxels)
+	int changed_voxel_count = (int)changed_voxels.size();
+#pragma omp parallel for schedule(auto) private(v) shared(m_visible_voxels)
 
 	// For potentially changed voxels
 	for (v = 0; v < changed_voxel_count; ++v)
@@ -225,44 +225,17 @@ void Reconstructor::update()
 			}
 		}
 
+		// checking if voxel is already in the visible voxels vector
+		int voxIndex = -1, vixVoxCount = m_visible_voxels.size();
+		for (int i = 0; i < vixVoxCount; i++) if (m_visible_voxels[i] == voxel) { voxIndex = i; break; }
+
 #pragma omp critical
-		voxel->active = (camera_counter == m_cameras.size());
+		// Updating visible voxels vector accordingly
+		bool active = (camera_counter == (int)m_cameras.size()), inVector = (voxIndex != -1);
+		if (active && !inVector) m_visible_voxels.push_back(voxel);
+		if (!active && inVector) m_visible_voxels.erase(m_visible_voxels.begin() + voxIndex);
 	}
-
-//	m_visible_voxels.clear();
-//	std::vector<Voxel*> visible_voxels;
-//
-//	int v;
-//#pragma omp parallel for schedule(auto) private(v) shared(visible_voxels)
-//
-//	// For every voxel
-//	for (v = 0; v < (int) m_voxels_amount; ++v)
-//	{
-//		int camera_counter = 0;
-//		Voxel* voxel = m_voxels[v];
-//
-//		for (size_t c = 0; c < m_cameras.size(); ++c)
-//		{
-//			if (voxel->valid_camera_projection[c])
-//			{
-//				const Point point = voxel->camera_projection[c];
-//
-//				//If there's a white pixel on the foreground image at the projection point, add the camera
-//				if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 255) ++camera_counter;
-//			}
-//		}
-//
-//		// If the voxel is present on all cameras
-//		if (camera_counter == m_cameras.size())
-//		{
-//#pragma omp critical //push_back is critical
-//			visible_voxels.push_back(voxel);
-//		}
-//	}
-//
-//	m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
-
-	//cluster();
+	cluster();
 }
 
 /*
@@ -274,7 +247,7 @@ void Reconstructor::cluster()
 
 	// Collecting voxels
 	//printf("Collecting voxels...");
-	int N = m_visible_voxels.size();
+	int N = (int)m_visible_voxels.size();
 	std::vector<cv::Point2f> dataPoints;
 	for (int i = 0; i < N; i++)
 		dataPoints.push_back(cv::Point2f((float)m_visible_voxels[i]->x, (float)m_visible_voxels[i]->y));
@@ -305,6 +278,45 @@ void Reconstructor::cluster()
 	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
 	//		centroids.at<float>(i, 0),
 	//		centroids.at<float>(i, 1));
+}
+
+/*
+	The original update implementation, now only called on the first frame
+*/
+void Reconstructor::initVisibleVoxels()
+{
+	m_visible_voxels.clear();
+	std::vector<Voxel*> visible_voxels;
+
+	int v;
+#pragma omp parallel for schedule(auto) private(v) shared(visible_voxels)
+
+	// For every voxel
+	for (v = 0; v < (int) m_voxels_amount; ++v)
+	{
+		int camera_counter = 0;
+		Voxel* voxel = m_voxels[v];
+
+		for (size_t c = 0; c < m_cameras.size(); ++c)
+		{
+			if (voxel->valid_camera_projection[c])
+			{
+				const Point point = voxel->camera_projection[c];
+
+				//If there's a white pixel on the foreground image at the projection point, add the camera
+				if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 255) ++camera_counter;
+			}
+		}
+
+		// If the voxel is present on all cameras
+		if (camera_counter == m_cameras.size())
+		{
+#pragma omp critical //push_back is critical
+			visible_voxels.push_back(voxel);
+		}
+	}
+
+	m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
 }
 
 } /* namespace nl_uu_science_gmt */
