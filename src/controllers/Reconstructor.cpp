@@ -10,6 +10,7 @@
 #include <opencv2\ml\ml.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/operations.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/types_c.h>
 #include <cassert>
 #include <iostream>
@@ -289,17 +290,12 @@ void Reconstructor::cluster()
 
 	// Coloring voxels
 	//printf("Coloring voxels...\n");
-	uint color;
+	uint color; // 0x00RRGGBB
 	for (int i = 0; i < N; i++)
 	{
-		// TODO cluster doesn't retain same color
+		// Takes the color of the cluster reference corresponding to that cluster label
+		//	(i.e. voxel cluster label --> person ID --> color)
 		color = m_clusterColors[clusterIdx[m_clusterLabels[i]]];
-		//if (clusterIdx[m_clusterLabels[i]] == 0) color = 0xFF0000;
-		//else if (clusterIdx[m_clusterLabels[i]] == 1) color = 0xFF00;
-		//else if (clusterIdx[m_clusterLabels[i]] == 2) color = 0xFF;
-		//else if (clusterIdx[m_clusterLabels[i]] == 3) color = 0xFFFF00;
-		//else if (clusterIdx[m_clusterLabels[i]] == 4) color = 0x00FFFF;
-		//else if (clusterIdx[m_clusterLabels[i]] == 5) color = 0xFF00FF;
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
@@ -344,34 +340,40 @@ cv::Vec3b Reconstructor::getAverageColor(int clusterIdx)
 */
 cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
 {
+	// For each camera
 	std::vector<cv::Vec3b> values;
 	int voxelCount = (int)m_visible_voxels.size(), cameraCount = (int)m_cameras.size();
 	for (int c = 0; c < cameraCount; c++)
 	{
-		// Collecting projected pixels
+		// Collect projected pixels without duplicates
 		std::vector<Point> pixels;
 		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
 			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
-			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x == pix.x && pixels[j].y == pix.y)
+			for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y)
 				pixels.push_back(pix); break;
 		}
 
-		// Collecting corresponding values
+		// Collect corresponding HSV pixel values
 		int pixelCount = pixels.size();
+		cv::Mat frame =  m_cameras[c]->getFrame(), hsvFrame;
+		cv::cvtColor(frame, hsvFrame, COLOR_BGR2HSV);
 		for (int i = 0; i < pixelCount; i++) {
-			values.push_back(m_cameras[c]->getFrame().at<Vec3b>(pixels[i]));
+			values.push_back(hsvFrame.at<Vec3b>(pixels[i]));
 		}
 	}
 
-	int binSize = 256 / binCount; // TODO this actually has one bin more than binCount
+	// Create a 2-dimensional histogram (for H and S)
+	int binSize = 256 / (binCount-1);
 	int valueCount = values.size();
-	cv::Mat histogram = cv::Mat::zeros(binCount+1, binCount+1, CV_32S);
+	cv::Mat histogram = cv::Mat::zeros(binCount, binCount, CV_32S);
 	for (int i = 0; i < valueCount; i++)
 	{
 		int Hbin = values[i][0] / binSize;
 		int Sbin = values[i][1] / binSize;
 		histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
 	}
+
+	// Flatten it to a 1 by (n * n) vector
 	return histogram.reshape(1, 1);
 }
 
