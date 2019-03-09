@@ -158,6 +158,8 @@ public:
 			voxels.push_back(cv::Point3f(m_visible_voxels[i]->x, m_visible_voxels[i]->y, m_visible_voxels[i]->z));
 		return voxels;
 	}
+
+	cv::Mat foregroundMask(std::vector<Voxel*> voxels, int cam);
 };
 
 } /* namespace nl_uu_science_gmt */

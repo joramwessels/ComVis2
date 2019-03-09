@@ -241,6 +241,18 @@ void Reconstructor::update()
 	cluster();
 }
 
+cv::Mat Reconstructor::foregroundMask(std::vector<Voxel*> voxels, int camNum) {
+	cv::Mat mask = cv::Mat(m_cameras[camNum]->getSize(), CV_8U);
+
+	for (int v = 0; v < voxels.size(); v++) {
+		int y = voxels[v]->camera_projection[camNum].y;
+		int x = voxels[v]->camera_projection[camNum].x;
+		mask.at<uchar>(y, x) = 255;
+	}
+
+	return mask;
+}
+
 /*
 	Clusters the visible voxels and colors them respectively
 */
