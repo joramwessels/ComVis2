@@ -63,6 +63,10 @@ private:
 	cv::Mat m_centroid_paths;
 	double m_terminationDelta;
 	std::vector<int> m_clusterLabels;
+	std::vector<int> m_clusterColors = {
+		0xFF0000, 0xFF00, 0xFF,
+		0xFFFF00, 0xFFFF, 0xFF00FF
+	};
 	cv::Vec3b m_avgColorReference[4] = {
 		cv::Vec3b(78, 72, 53), cv::Vec3b(43, 38, 26),
 		cv::Vec3b(72, 66, 53), cv::Vec3b(85, 72, 50)

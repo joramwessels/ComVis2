@@ -293,12 +293,13 @@ void Reconstructor::cluster()
 	for (int i = 0; i < N; i++)
 	{
 		// TODO cluster doesn't retain same color
-		if (clusterIdx[m_clusterLabels[i]] == 0) color = 0xFF0000;
-		else if (clusterIdx[m_clusterLabels[i]] == 1) color = 0xFF00;
-		else if (clusterIdx[m_clusterLabels[i]] == 2) color = 0xFF;
-		else if (clusterIdx[m_clusterLabels[i]] == 3) color = 0xFFFF00;
-		else if (clusterIdx[m_clusterLabels[i]] == 4) color = 0x00FFFF;
-		else if (clusterIdx[m_clusterLabels[i]] == 5) color = 0xFF00FF;
+		color = m_clusterColors[clusterIdx[m_clusterLabels[i]]];
+		//if (clusterIdx[m_clusterLabels[i]] == 0) color = 0xFF0000;
+		//else if (clusterIdx[m_clusterLabels[i]] == 1) color = 0xFF00;
+		//else if (clusterIdx[m_clusterLabels[i]] == 2) color = 0xFF;
+		//else if (clusterIdx[m_clusterLabels[i]] == 3) color = 0xFFFF00;
+		//else if (clusterIdx[m_clusterLabels[i]] == 4) color = 0x00FFFF;
+		//else if (clusterIdx[m_clusterLabels[i]] == 5) color = 0xFF00FF;
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
