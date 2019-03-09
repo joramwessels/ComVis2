@@ -279,6 +279,8 @@ void Glut::keyboard(
 		{
 			bool paused = scene3d.isPaused();
 			scene3d.setPaused(!paused);
+			imshow("Path", m_Glut->getScene3d().getReconstructor().getCentroidPaths());
+			cv::waitKey(0);
 		}
 		else if (key == 'b' || key == 'B')
 		{

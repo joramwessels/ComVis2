@@ -58,6 +58,9 @@ private:
 	void cluster();
 	int m_clusterEpochs;
 	int m_clusterCount;
+	cv::Mat m_cluster_centroids;
+	int m_path_scale;
+	cv::Mat m_centroid_paths;
 	double m_terminationDelta;
 	std::vector<int> m_clusterLabels;
 	cv::Vec3b m_avgColorReference[4] = {
@@ -157,6 +160,36 @@ public:
 		for (int i = 0; i < m_visible_voxels.size(); i++) if ((int)(m_clusterLabels[i]) == clusterIdx)
 			voxels.push_back(cv::Point3f(m_visible_voxels[i]->x, m_visible_voxels[i]->y, m_visible_voxels[i]->z));
 		return voxels;
+	}
+
+	/*
+		Returns the center of a centroid as a point2f (in xy space)
+		@param clusterIdx the index of the required cluster
+	*/
+	cv::Point2f getCentroid(int clusterIdx) {
+		float x = m_cluster_centroids.at<float>(clusterIdx, 0);
+		float y = m_cluster_centroids.at<float>(clusterIdx, 1);
+		return cv::Point2f(x, y);
+	}
+
+	void updateCentroidPaths() {
+		//cv::Point2f centroid = getCentroid(0);
+		//int x = static_cast<int>((centroid.y + m_height) / m_path_scale);
+		//int y = static_cast<int>((centroid.x + m_height) / m_path_scale);
+
+		//m_centroid_paths.at<uchar>(y, x) = 255;
+
+		for (int c = 0; c < m_clusterCount; c++) {
+			cv::Point2f centroid = getCentroid(c);
+			int x = static_cast<int>((centroid.x + m_height) / m_path_scale);
+			int y = static_cast<int>((centroid.y + m_height) / m_path_scale);
+
+			m_centroid_paths.at<uchar>(y, x) = 255;
+		}
+	}
+
+	cv::Mat getCentroidPaths() {
+		return m_centroid_paths;
 	}
 
 	cv::Mat foregroundMask(std::vector<Voxel*> voxels, int cam);
