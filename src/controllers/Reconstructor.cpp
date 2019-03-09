@@ -350,7 +350,7 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 		std::vector<Point> pixels;
 		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
 			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
-			for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y)
+			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y)
 				pixels.push_back(pix); break;
 		}
 
@@ -366,13 +366,16 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 	// Create two 1-dimensional histograms (for H and S)
 	int binSize = 256 / (binCount-1);
 	int valueCount = values.size();
-	cv::Mat histogramH, histogramS = cv::Mat::zeros(binCount, 1, CV_32S);
+	cv::Mat histogramH = cv::Mat::zeros(binCount, 1, CV_32S);
+	cv::Mat histogramS = cv::Mat::zeros(binCount, 1, CV_32S);
 	for (int i = 0; i < valueCount; i++)
 	{
 		int Hbin = values[i][0] / binSize;
-		histogramH.at<int>(Hbin) = histogramH.at<int>(Hbin) + 1;
+		(*(histogramH.ptr(Hbin)))++;
+		//histogramH.at<int>(Hbin) = histogramH.at<int>(Hbin) + 1;
 		int Sbin = values[i][1] / binSize;
-		histogramS.at<int>(Sbin) = histogramS.at<int>(Sbin) + 1;
+		//histogramS.at<int>(Sbin) = histogramS.at<int>(Sbin) + 1;
+		(*(histogramS.ptr(Sbin)))++;
 		//histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
 	}
 	return std::vector<cv::Mat>({ histogramH, histogramS });
