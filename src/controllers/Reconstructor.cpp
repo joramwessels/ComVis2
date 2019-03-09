@@ -281,12 +281,16 @@ void Reconstructor::cluster()
 	m_cluster_centroids = centroids;
 	updateCentroidPaths();
 
-	// Matching clusters with reference color models
+	/* Matching clusters with reference color models */
+	// Get initial histogram if we haven't already
 	if (m_histogramReference.size() == 0)
 		for (int i = 0; i < m_clusterCount; i++)
 			m_histogramReference.push_back(getColorHistogram(i));
+
 	std::vector<cv::Mat> histograms = std::vector<cv::Mat>(m_clusterCount);
+
 	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistogram(i);
+
 	std::vector<int> clusterIdx = findBestHistogramMatches(histograms);
 
 	// Coloring voxels
@@ -300,9 +304,9 @@ void Reconstructor::cluster()
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
-	printf("centroid%i: %.2f, %.2f 0.0\n", 0,
-		centroids.at<float>(0, 0),
-		centroids.at<float>(0, 1));
+	//printf("centroid%i: %.2f, %.2f 0.0\n", 0,
+	//	centroids.at<float>(0, 0),
+	//	centroids.at<float>(0, 1));
 
 	//for (int i = 0; i < m_clusterCount; i++) // DEBUG
 	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
@@ -350,8 +354,19 @@ cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
 		std::vector<Point> pixels;
 		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
 			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
-			for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y)
-				pixels.push_back(pix); break;
+
+			bool already_found = false;
+
+			// For all pixels we found before
+			for (int j = 0; j < pixels.size(); j++) {
+				// If we already have a pixel that is NOT equal to the pixel we found
+				if (pixels[j].x == pix.x && pixels[j].y == pix.y) {
+					already_found = true;
+				}
+			}
+			
+			if (!already_found)
+				pixels.push_back(pix);
 		}
 
 		// Collect corresponding HSV pixel values
