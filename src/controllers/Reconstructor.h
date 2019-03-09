@@ -12,6 +12,7 @@
 #include <opencv2\ml\ml.hpp>
 #include <stddef.h>
 #include <vector>
+#include "opencv2/imgproc.hpp"
 
 #include "Camera.h"
 
@@ -184,11 +185,20 @@ public:
 		//m_centroid_paths.at<uchar>(y, x) = 255;
 
 		for (int c = 0; c < m_clusterCount; c++) {
+			uint rgb = (uint)(m_clusterColors[c]);
+			uchar r = (uchar)((rgb >> 16) & 0xFF);
+			uchar g = (uchar)((rgb >> 8) & 0xFF);
+			uchar b = (uchar)((rgb >> 0) & 0xFF);
+			uchar a = 255;
+
 			cv::Point2f centroid = getCentroid(c);
 			int x = static_cast<int>((centroid.x + m_height) / m_path_scale);
 			int y = static_cast<int>((centroid.y + m_height) / m_path_scale);
 
-			m_centroid_paths.at<uchar>(y, x) = 255;
+			cv::circle(m_centroid_paths, cv::Point(x, y), 2, cv::Scalar(b, g, r, a), -1);
+
+
+			//m_centroid_paths.at<cv::Vec3b>(y, x) = color;
 		}
 	}
 
