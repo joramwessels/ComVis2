@@ -166,7 +166,7 @@ void Reconstructor::initialize()
 }
 
 void Reconstructor::initVoxelColoring() { // TODO never gets called?
-	printf("\n\nVoxel count: %d", (int)m_voxels_amount);
+	printf("\n\nVoxel count: %d\n", (int)m_voxels_amount);
 	// For every voxel
 	for (int v = 0; v < (int)m_voxels_amount; ++v)
 	{
@@ -300,9 +300,9 @@ void Reconstructor::cluster()
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 
-	printf("centroid%i: %.2f, %.2f 0.0\n", 0,
-		centroids.at<float>(0, 0),
-		centroids.at<float>(0, 1));
+	//printf("centroid%i: %.2f, %.2f 0.0\n", 0,
+	//	centroids.at<float>(0, 0),
+	//	centroids.at<float>(0, 1));
 
 	//for (int i = 0; i < m_clusterCount; i++) // DEBUG
 	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
@@ -351,7 +351,7 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
 			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
 			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y)
-				pixels.push_back(pix); break;
+				pixels.push_back(pix);// break;
 		}
 
 		// Collect corresponding HSV pixel values
@@ -434,19 +434,39 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 	std::vector<int> clustAssignment = std::vector<int>(m_clusterCount);
 	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
 
-	int k = 0;
+	// DEBUG print histograms
+	//printf("\n");
+	//for (int i = 0; i < 10; i++) printf("%3d ", (256 / 9)*i);
+	//printf("\n");
+	//for (int i = 0; i < m_clusterCount; i++) {
+	//	for (int j = 0; j < 2; j++) {
+	//		for (int k = 0; k < 10; k++) {
+	//			printf("%3d ", *(histograms[i][j].ptr(k)));
+	//		}
+	//		printf("\n");
+	//	}
+	//}
+
+	int i = 0;
 	std::vector<float> sumOfSquares;
-	while (std::next_permutation(clustAssignment.begin(), clustAssignment.end()))
+	do
 	{
 		sumOfSquares.push_back(0);
-		for (int i=0; i<m_clusterCount; i++) for (int j = 0; j < m_clusterCount; j++)
+		for (int j = 0; j < m_clusterCount; j++)
 		{
-			float dist1 = cv::EMDL1(m_histogramReference[clustAssignment[i]][0], histograms[j][0]);
-			float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[i]][1], histograms[j][1]);
-			sumOfSquares[k] += dist1 + dist2;
+			//float dist1 = cv::EMDL1(m_histogramReference[clustAssignment[i]][0], histograms[j][0]);
+			cv::Mat err1 = m_histogramReference[clustAssignment[j]][0] - histograms[j][0];
+			float dist1 = err1.dot(err1);
+			//float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[i]][1], histograms[j][1]);
+			cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
+			float dist2 = err1.dot(err1);
+			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2);
+			sumOfSquares[i] += dist1 + dist2;
 		}
-		k++;
-	}
+		i++;
+		//printf("err: %.2f\n\n", sumOfSquares[i - 1]);
+		//printf("");
+	} while (std::next_permutation(clustAssignment.begin(), clustAssignment.end()));
 	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
 	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
 	for (int i = 0; i < bestIndex; i++) std::next_permutation(clustAssignment.begin(), clustAssignment.end());
