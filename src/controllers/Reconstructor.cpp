@@ -7,6 +7,7 @@
 
 #include "Reconstructor.h"
 
+#include <opencv2\ml\ml.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/operations.hpp>
 #include <opencv2/core/types_c.h>
@@ -279,9 +280,12 @@ void Reconstructor::cluster()
 	updateCentroidPaths();
 
 	// Matching clusters with reference color models
-	std::vector<cv::Vec3b> avgColors = std::vector<cv::Vec3b>(m_clusterCount);
-	for (int i = 0; i < m_clusterCount; i++) avgColors[i] = getAverageColor(i);
-	std::vector<int> clusterIdx = findBestModelMatches(avgColors);
+	if (m_histogramReference.size() == 0)
+		for (int i = 0; i < m_clusterCount; i++)
+			m_histogramReference.push_back(getColorHistogram(i));
+	std::vector<cv::Mat> histograms = std::vector<cv::Mat>(m_clusterCount);
+	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistogram(i);
+	std::vector<int> clusterIdx = findBestHistogramMatches(histograms);
 
 	// Coloring voxels
 	//printf("Coloring voxels...\n");
@@ -333,11 +337,50 @@ cv::Vec3b Reconstructor::getAverageColor(int clusterIdx)
 }
 
 /*
-	Finds the best matching color model
+	Calculates the color histogram for the given cluster ID
+	@param clusterIdx the cluster ID to calculate a histogram for
+	@param bins the amount of color bins for each channel
+*/
+cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
+{
+	std::vector<cv::Vec3b> values;
+	int voxelCount = (int)m_visible_voxels.size(), cameraCount = (int)m_cameras.size();
+	for (int c = 0; c < cameraCount; c++)
+	{
+		// Collecting projected pixels
+		std::vector<Point> pixels;
+		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
+			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
+			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x == pix.x && pixels[j].y == pix.y)
+				pixels.push_back(pix); break;
+		}
+
+		// Collecting corresponding values
+		int pixelCount = pixels.size();
+		for (int i = 0; i < pixelCount; i++) {
+			values.push_back(m_cameras[c]->getFrame().at<Vec3b>(pixels[i]));
+		}
+	}
+
+	int binSize = 256 / binCount; // TODO this actually has one bin more than binCount
+	int valueCount = values.size();
+	cv::Mat histogram = cv::Mat::zeros(binCount+1, binCount+1, CV_32S);
+	for (int i = 0; i < valueCount; i++)
+	{
+		int Hbin = values[i][0] / binSize;
+		int Sbin = values[i][1] / binSize;
+		histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
+	}
+	return histogram.reshape(1, 1);
+}
+
+/*
+	Finds the best matching color model using average color
 	@param avgColor the average color of the voxel cluster projections
 */
-std::vector<int> Reconstructor::findBestModelMatches(std::vector<cv::Vec3b> avgColors)
+std::vector<int> Reconstructor::findBestAvgColorMatches(std::vector<cv::Vec3b> avgColors)
 {
+	// Finding the mapping with the least squares (Euclidean)
 	std::vector<int> clustAssignment = std::vector<int>(m_clusterCount);
 	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
 
@@ -358,6 +401,7 @@ std::vector<int> Reconstructor::findBestModelMatches(std::vector<cv::Vec3b> avgC
 	for (int i = 0; i < bestIndex; i++) std::next_permutation(clustAssignment.begin(), clustAssignment.end());
 	return clustAssignment;
 
+	//// Finding the closest reference per cluster (Euclidean)
 	//int bestMatch = -1;
 	//float closestDist = -1.0;
 	//for (int i = 0; i < m_clusterCount; i++)
@@ -371,6 +415,34 @@ std::vector<int> Reconstructor::findBestModelMatches(std::vector<cv::Vec3b> avgC
 	//	}
 	//}
 	//return bestMatch;
+}
+
+/*
+	Finds the best matching color model using histograms
+	@param histograms a vector with the color histograms
+*/
+std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<cv::Mat> histograms)
+{
+	// Finding the closest reference per cluster (Euclidean)
+	std::vector<int> bestMatch;
+	std::vector<float> closestDist;
+	//cv::Mat dist = cv::Mat(m_clusterCount, m_clusterCount, CV_32F);
+	for (int i = 0; i < m_clusterCount; i++)
+	{
+		bestMatch.push_back(-1);
+		closestDist.push_back(-1.0f);
+		for (int j = 0; j < m_clusterCount; j++)
+		{
+			cv::Mat err = m_histogramReference[j] - histograms[i];
+			float sqrDist = err.dot(err);
+			if (closestDist[i] == -1.0 || sqrDist < closestDist[i])
+			{
+				bestMatch[i] = j;
+				closestDist[i] = sqrDist;
+			}
+		}
+	}
+	return bestMatch;
 }
 
 /*
