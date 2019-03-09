@@ -414,26 +414,47 @@ std::vector<int> Reconstructor::findBestAvgColorMatches(std::vector<cv::Vec3b> a
 */
 std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<cv::Mat> histograms)
 {
-	// Finding the closest reference per cluster (Euclidean)
-	std::vector<int> bestMatch;
-	std::vector<float> closestDist;
-	//cv::Mat dist = cv::Mat(m_clusterCount, m_clusterCount, CV_32F);
-	for (int i = 0; i < m_clusterCount; i++)
+	// Finding the mapping with the least squares (Euclidean)
+	std::vector<int> clustAssignment = std::vector<int>(m_clusterCount);
+	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
+
+	int k = 0;
+	std::vector<float> sumOfSquares;
+	while (std::next_permutation(clustAssignment.begin(), clustAssignment.end()))
 	{
-		bestMatch.push_back(-1);
-		closestDist.push_back(-1.0f);
-		for (int j = 0; j < m_clusterCount; j++)
+		sumOfSquares.push_back(0);
+		for (int i=0; i<m_clusterCount; i++) for (int j = 0; j < m_clusterCount; j++)
 		{
-			cv::Mat err = m_histogramReference[j] - histograms[i];
-			float sqrDist = err.dot(err);
-			if (closestDist[i] == -1.0 || sqrDist < closestDist[i])
-			{
-				bestMatch[i] = j;
-				closestDist[i] = sqrDist;
-			}
+			cv::Mat err = m_histogramReference[clustAssignment[i]] - histograms[j];
+			sumOfSquares[k] += err.dot(err);
 		}
+		k++;
 	}
-	return bestMatch;
+	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
+	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
+	for (int i = 0; i < bestIndex; i++) std::next_permutation(clustAssignment.begin(), clustAssignment.end());
+	return clustAssignment;
+
+	//// Finding the closest reference per cluster (Euclidean)
+	//std::vector<int> bestMatch;
+	//std::vector<float> closestDist;
+	////cv::Mat dist = cv::Mat(m_clusterCount, m_clusterCount, CV_32F);
+	//for (int i = 0; i < m_clusterCount; i++)
+	//{
+	//	bestMatch.push_back(-1);
+	//	closestDist.push_back(-1.0f);
+	//	for (int j = 0; j < m_clusterCount; j++)
+	//	{
+	//		cv::Mat err = m_histogramReference[j] - histograms[i];
+	//		float sqrDist = err.dot(err);
+	//		if (closestDist[i] == -1.0 || sqrDist < closestDist[i])
+	//		{
+	//			bestMatch[i] = j;
+	//			closestDist[i] = sqrDist;
+	//		}
+	//	}
+	//}
+	//return bestMatch;
 }
 
 /*
