@@ -45,6 +45,9 @@ Reconstructor::Reconstructor(
 	const size_t edge = 2 * m_height;
 	m_voxels_amount = (edge / m_step) * (edge / m_step) * (m_height / m_step);
 
+	m_path_scale = 4;
+	m_centroid_paths = cv::Mat::zeros(edge / m_path_scale, edge / m_path_scale, CV_8U);
+
 	Reconstructor::getSize();
 
 	initialize();
@@ -272,6 +275,8 @@ void Reconstructor::cluster()
 	cv::Mat centroids = cv::Mat(m_clusterCount, 2, CV_32F);
 	for (int i = 0; i < m_clusterCount; i++) centroids.row(i) = cv::Mat(1, 2, CV_32F, { (float)i, 0.0f });
 	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS, centroids);
+	m_cluster_centroids = centroids;
+	updateCentroidPaths();
 
 	// Matching clusters with reference color models
 	std::vector<cv::Vec3b> avgColors = std::vector<cv::Vec3b>(m_clusterCount);
@@ -292,6 +297,10 @@ void Reconstructor::cluster()
 		else if (clusterIdx[m_clusterLabels[i]] == 5) color = 0xFF00FF;
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
+
+	printf("centroid%i: %.2f, %.2f 0.0\n", 0,
+		centroids.at<float>(0, 0),
+		centroids.at<float>(0, 1));
 
 	//for (int i = 0; i < m_clusterCount; i++) // DEBUG
 	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
