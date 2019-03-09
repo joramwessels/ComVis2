@@ -7,6 +7,7 @@
 
 #include "Reconstructor.h"
 
+#include <opencv2\opencv.hpp>
 #include <opencv2\ml\ml.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/operations.hpp>
@@ -283,9 +284,9 @@ void Reconstructor::cluster()
 	// Matching clusters with reference color models
 	if (m_histogramReference.size() == 0)
 		for (int i = 0; i < m_clusterCount; i++)
-			m_histogramReference.push_back(getColorHistogram(i));
-	std::vector<cv::Mat> histograms = std::vector<cv::Mat>(m_clusterCount);
-	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistogram(i);
+			m_histogramReference.push_back(getColorHistograms(i));
+	std::vector<std::vector<cv::Mat>> histograms = std::vector<std::vector<cv::Mat>>(m_clusterCount);
+	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistograms(i);
 	std::vector<int> clusterIdx = findBestHistogramMatches(histograms);
 
 	// Coloring voxels
@@ -334,11 +335,11 @@ cv::Vec3b Reconstructor::getAverageColor(int clusterIdx)
 }
 
 /*
-	Calculates the color histogram for the given cluster ID
+	Calculates the color histograms for the given cluster ID
 	@param clusterIdx the cluster ID to calculate a histogram for
 	@param bins the amount of color bins for each channel
 */
-cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
+std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCount)
 {
 	// For each camera
 	std::vector<cv::Vec3b> values;
@@ -362,19 +363,19 @@ cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
 		}
 	}
 
-	// Create a 2-dimensional histogram (for H and S)
+	// Create two 1-dimensional histograms (for H and S)
 	int binSize = 256 / (binCount-1);
 	int valueCount = values.size();
-	cv::Mat histogram = cv::Mat::zeros(binCount, binCount, CV_32S);
+	cv::Mat histogramH, histogramS = cv::Mat::zeros(binCount, 1, CV_32S);
 	for (int i = 0; i < valueCount; i++)
 	{
 		int Hbin = values[i][0] / binSize;
+		histogramH.at<int>(Hbin) = histogramH.at<int>(Hbin) + 1;
 		int Sbin = values[i][1] / binSize;
-		histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
+		histogramS.at<int>(Sbin) = histogramS.at<int>(Sbin) + 1;
+		//histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
 	}
-
-	// Flatten it to a 1 by (n * n) vector
-	return histogram.reshape(1, 1);
+	return std::vector<cv::Mat>({ histogramH, histogramS });
 }
 
 /*
@@ -424,7 +425,7 @@ std::vector<int> Reconstructor::findBestAvgColorMatches(std::vector<cv::Vec3b> a
 	Finds the best matching color model using histograms
 	@param histograms a vector with the color histograms
 */
-std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<cv::Mat> histograms)
+std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms)
 {
 	// Finding the mapping with the least squares (Euclidean)
 	std::vector<int> clustAssignment = std::vector<int>(m_clusterCount);
@@ -437,8 +438,9 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<cv::Mat> hi
 		sumOfSquares.push_back(0);
 		for (int i=0; i<m_clusterCount; i++) for (int j = 0; j < m_clusterCount; j++)
 		{
-			cv::Mat err = m_histogramReference[clustAssignment[i]] - histograms[j];
-			sumOfSquares[k] += err.dot(err);
+			float dist1 = cv::EMDL1(m_histogramReference[clustAssignment[i]][0], histograms[j][0]);
+			float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[i]][1], histograms[j][1]);
+			sumOfSquares[k] += dist1 + dist2;
 		}
 		k++;
 	}

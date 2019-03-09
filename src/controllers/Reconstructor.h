@@ -71,13 +71,13 @@ private:
 		cv::Vec3b(78, 72, 53), cv::Vec3b(43, 38, 26),
 		cv::Vec3b(72, 66, 53), cv::Vec3b(85, 72, 50)
 	};
-	std::vector<cv::Mat> m_histogramReference;
+	std::vector<std::vector<cv::Mat>> m_histogramReference;
 
 	cv::Vec3b getAverageColor(int clusterIdx);
-	cv::Mat getColorHistogram(int clusterIdx, int bins=10);
+	std::vector<cv::Mat> getColorHistograms(int clusterIdx, int bins=10);
 	
 	std::vector<int> findBestAvgColorMatches(std::vector<cv::Vec3b> avgColors);
-	std::vector<int> findBestHistogramMatches(std::vector<cv::Mat> histograms);
+	std::vector<int> findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms);
 
 public:
 	Reconstructor(
