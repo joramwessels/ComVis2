@@ -330,8 +330,8 @@ cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
 		std::vector<Point> pixels;
 		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
 			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
-			if (std::find(pixels.begin(), pixels.end(), pix) != pixels.end())
-				pixels.push_back(pix);
+			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x == pix.x && pixels[j].y == pix.y)
+				pixels.push_back(pix); break;
 		}
 
 		// Collecting corresponding values
@@ -341,17 +341,16 @@ cv::Mat Reconstructor::getColorHistogram(int clusterIdx, int binCount)
 		}
 	}
 
-	int binSize = binCount / 256; // TODO this actually has one bin more than binCount
+	int binSize = 256 / binCount; // TODO this actually has one bin more than binCount
 	int valueCount = values.size();
 	cv::Mat histogram = cv::Mat::zeros(binCount+1, binCount+1, CV_32S);
 	for (int i = 0; i < valueCount; i++)
 	{
 		int Hbin = values[i][0] / binSize;
 		int Sbin = values[i][1] / binSize;
-		histogram.at<int>(Hbin, Sbin)++;
+		histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
 	}
-	cv::Mat result = histogram.reshape(1, 1);
-	return result;
+	return histogram.reshape(1, 1);
 }
 
 /*
@@ -414,7 +413,6 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<cv::Mat> hi
 		for (int j = 0; j < m_clusterCount; j++)
 		{
 			cv::Mat err = m_histogramReference[j] - histograms[i];
-			//dist.at<float>(i, j) = err.dot(err);
 			float sqrDist = err.dot(err);
 			if (closestDist[i] == -1.0 || sqrDist < closestDist[i])
 			{
