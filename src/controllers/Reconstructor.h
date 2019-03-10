@@ -74,7 +74,7 @@ private:
 	std::vector<std::vector<cv::Mat>> m_histogramReference;
 
 	cv::Vec3b getAverageColor(int clusterIdx);
-	std::vector<cv::Mat> getColorHistograms(int clusterIdx, int bins=10);
+	std::vector<cv::Mat> getColorHistograms(int clusterIdx, int bins=50);
 	
 	std::vector<int> findBestAvgColorMatches(std::vector<cv::Vec3b> avgColors);
 	std::vector<int> findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms);

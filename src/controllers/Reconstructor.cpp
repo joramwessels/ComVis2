@@ -364,10 +364,10 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 	}
 
 	// Create two 1-dimensional histograms (for H and S)
-	int binSize = 256 / (binCount-1);
+	int binSize = 256 / binCount;
 	int valueCount = values.size();
-	cv::Mat histogramH = cv::Mat::zeros(binCount, 1, CV_32F);
-	cv::Mat histogramS = cv::Mat::zeros(binCount, 1, CV_32F);
+	cv::Mat histogramH = cv::Mat::zeros(binCount+2, 1, CV_32F);
+	cv::Mat histogramS = cv::Mat::zeros(binCount+2, 1, CV_32F);
 	for (int i = 0; i < valueCount; i++)
 	{
 		int Hbin = values[i][0] / binSize;
@@ -460,16 +460,18 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 			float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[j]][1], histograms[j][1]);
 			//cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
 			//float dist2 = err1.dot(err1);
-			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2);
+			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2); // DEBUG
 			sumOfSquares[i] += dist1 + dist2;
 		}
 		i++;
-		//printf("err: %.2f\n\n", sumOfSquares[i - 1]);
-		//printf("");
+		//printf("err: %.2f\n\n", sumOfSquares[i - 1]); // DEBUG
+		//printf(""); // DEBUG
 	} while (std::next_permutation(clustAssignment.begin(), clustAssignment.end()));
 	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
 	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
 	for (int i = 0; i < bestIndex; i++) std::next_permutation(clustAssignment.begin(), clustAssignment.end());
+	//printf("\nBest: err = %.2f\n", sumOfSquares[bestIndex]); // DEBUG
+	//for (int i = 0; i < m_clusterCount; i++) printf("%i, %i: (%.2f)\n", clustAssignment[i], i); // DEBUG
 	return clustAssignment;
 
 	//// Finding the closest reference per cluster (Euclidean)
