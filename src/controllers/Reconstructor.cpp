@@ -363,12 +363,16 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 	for (int i = 0; i < m_clusterCount; i++) permutation[i] = i;
 	do { clusterMapping.push_back(permutation); }
 	while (std::next_permutation(permutation.begin(), permutation.end()));
+	int permutationCount = clusterMapping.size();
 
 	// Exhaustively computing the distance for each mapping
-	std::vector<float> sumOfSquares;
-	for (int i = 0; i < m_clusterCount; i++) // for each permutation
+	int bestMappingIndex = -1;
+	float smallestError = -1.0f;
+	float highestError = -1.0f; // DEBUG
+//#pragma omp parallel for schedule(auto) shared(bestMappingIndex, smallestError, highestError)
+	for (int i = 0; i < permutationCount; i++) // for each permutation
 	{
-		sumOfSquares.push_back(0);
+		double summedError = 0;
 		for (int j = 0; j < m_clusterCount; j++) // for each cluster
 		{
 			float dist1 = cv::EMDL1(m_histogramReference[clusterMapping[i][j]][0], histograms[j][0]);
@@ -378,19 +382,24 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 			//cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
 			//float dist2 = err1.dot(err1);
 			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2); // DEBUG
-			sumOfSquares[i] += dist1 + dist2;
+			summedError += dist1 + dist2;
 		}
-		//printf("err: %.2f\n\n", sumOfSquares[i - 1]); // DEBUG
-		//printf(""); // DEBUG
+		summedError *= 10000000000000000000000000000000000000000.0;
+		//printf("Permutation %i: (%i, %i, %i, %i), err: %f\n", i, clusterMapping[i][0], clusterMapping[i][1], clusterMapping[i][2], clusterMapping[i][3], summedError); // DEBUG
+//#pragma omp critical
+		if (bestMappingIndex == -1 || summedError < smallestError)
+		{
+			bestMappingIndex = i;
+			smallestError = summedError;
+		}
+		if (summedError > highestError) highestError = summedError; // DEBUG
 	}
 
-	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
-
-	//printf("Best index: %i\n", bestIndex); // DEBUG
+	//printf("Best index: %i, lowest: %f, highest %f\n", bestMappingIndex, smallestError, highestError); // DEBUG
 	//printf("\nBest: err = %.2f\n", sumOfSquares[bestIndex]); // DEBUG
 	//for (int i = 0; i < m_clusterCount; i++) printf("%i, %i: (%.2f)\n", clustAssignment[i], i); // DEBUG
 
-	return clusterMapping[bestIndex];
+	return clusterMapping[bestMappingIndex];
 }
 
 /*
