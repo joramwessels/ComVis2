@@ -366,8 +366,8 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 	// Create two 1-dimensional histograms (for H and S)
 	int binSize = 256 / (binCount-1);
 	int valueCount = values.size();
-	cv::Mat histogramH = cv::Mat::zeros(binCount, 1, CV_32S);
-	cv::Mat histogramS = cv::Mat::zeros(binCount, 1, CV_32S);
+	cv::Mat histogramH = cv::Mat::zeros(binCount, 1, CV_32F);
+	cv::Mat histogramS = cv::Mat::zeros(binCount, 1, CV_32F);
 	for (int i = 0; i < valueCount; i++)
 	{
 		int Hbin = values[i][0] / binSize;
@@ -454,12 +454,12 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 		sumOfSquares.push_back(0);
 		for (int j = 0; j < m_clusterCount; j++)
 		{
-			//float dist1 = cv::EMDL1(m_histogramReference[clustAssignment[i]][0], histograms[j][0]);
-			cv::Mat err1 = m_histogramReference[clustAssignment[j]][0] - histograms[j][0];
-			float dist1 = err1.dot(err1);
-			//float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[i]][1], histograms[j][1]);
-			cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
-			float dist2 = err1.dot(err1);
+			float dist1 = cv::EMDL1(m_histogramReference[clustAssignment[j]][0], histograms[j][0]);
+			//cv::Mat err1 = m_histogramReference[clustAssignment[j]][0] - histograms[j][0];
+			//float dist1 = err1.dot(err1);
+			float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[j]][1], histograms[j][1]);
+			//cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
+			//float dist2 = err1.dot(err1);
 			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2);
 			sumOfSquares[i] += dist1 + dist2;
 		}
