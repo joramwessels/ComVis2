@@ -202,9 +202,11 @@ void Reconstructor::update()
 	// These voxels should be updated to reflect any possible changes.
 	std::vector<Voxel*> changed_voxels;
 	int cameraCount = (int)m_cameras.size();
-	for (int c = 0; c < cameraCount; c++) {
+	for (int c = 0; c < cameraCount; c++)
+	{
 		cv::Mat changed_pixels = m_cameras[c]->getForegroundDifference();
-		for (int y = 0; y < changed_pixels.rows; y++) for (int x = 0; x < changed_pixels.cols; x++) {
+		for (int y = 0; y < changed_pixels.rows; y++) for (int x = 0; x < changed_pixels.cols; x++)
+		{
 			if (changed_pixels.at<uchar>(y, x) == 255) {
 				changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
 			}
@@ -246,6 +248,11 @@ void Reconstructor::update()
 	cluster();
 }
 
+/*
+
+	@param voxels
+	@param camNum
+*/
 cv::Mat Reconstructor::foregroundMask(std::vector<Voxel*> voxels, int camNum) {
 	cv::Mat mask = cv::Mat(m_cameras[camNum]->getSize(), CV_8U);
 
@@ -266,14 +273,12 @@ void Reconstructor::cluster()
 	assert(m_clusterCount > 0);
 
 	// Collecting voxels
-	//printf("Collecting voxels...");
 	int N = (int)m_visible_voxels.size();
 	std::vector<cv::Point2f> dataPoints;
 	for (int i = 0; i < N; i++)
 		dataPoints.push_back(cv::Point2f((float)m_visible_voxels[i]->x, (float)m_visible_voxels[i]->y));
 
 	// Clustering voxels
-	//printf("Clustering voxels...");
 	TermCriteria terminationCriteria = TermCriteria(TermCriteria::EPS, 0, m_terminationDelta);
 	cv::Mat centroids = cv::Mat(m_clusterCount, 2, CV_32F);
 	for (int i = 0; i < m_clusterCount; i++) centroids.row(i) = cv::Mat(1, 2, CV_32F, { (float)i, 0.0f });
@@ -290,7 +295,6 @@ void Reconstructor::cluster()
 	std::vector<int> clusterIdx = findBestHistogramMatches(histograms);
 
 	// Coloring voxels
-	//printf("Coloring voxels...\n");
 	uint color; // 0x00RRGGBB
 	for (int i = 0; i < N; i++)
 	{
@@ -299,39 +303,6 @@ void Reconstructor::cluster()
 		color = m_clusterColors[clusterIdx[m_clusterLabels[i]]];
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
-
-	//printf("centroid%i: %.2f, %.2f 0.0\n", 0,
-	//	centroids.at<float>(0, 0),
-	//	centroids.at<float>(0, 1));
-
-	//for (int i = 0; i < m_clusterCount; i++) // DEBUG
-	//	printf("centroid%i: %.2f, %.2f 0.0\n", i,
-	//		centroids.at<float>(i, 0),
-	//		centroids.at<float>(i, 1));
-}
-
-/*
-	Computes the average color of the projected voxel cluster over all cameras
-	@param clusterIdx the cluster for which to get the average color
-*/
-cv::Vec3b Reconstructor::getAverageColor(int clusterIdx)
-{
-	std::vector<cv::Vec3b> pixels;
-	int voxelCount = (int)m_visible_voxels.size(), cameraCount = m_cameras.size();
-//#pragma omp parallel for schedule (auto) private(i) shared(pixels)
-	for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
-		for (int c = 0; c < cameraCount; c++)
-		{
-			cv::Point pixId = m_visible_voxels[i]->camera_projection[c];
-			cv::Mat frame = m_cameras[c]->getFrame();
-//#pragma omp critical
-			pixels.push_back(frame.at<Vec3b>(pixId.y, pixId.x));
-		}
-	}
-	cv::Vec3i sum;
-	int pixelCount = pixels.size();
-	for (int i = 0; i < pixelCount; i++) sum += pixels[i];
-	return cv::Vec3b(sum[0] / pixelCount, sum[1] / pixelCount, sum[2] / pixelCount);
 }
 
 /*
@@ -350,7 +321,7 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 		std::vector<Point> pixels;
 		for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
 			cv::Point pix = m_visible_voxels[i]->camera_projection[c];
-			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y)
+			//for (int j=0; j<pixels.size(); j++) if (pixels[j].x != pix.x && pixels[j].y != pix.y) // checking for duplicates
 				pixels.push_back(pix);// break;
 		}
 
@@ -372,18 +343,110 @@ std::vector<cv::Mat> Reconstructor::getColorHistograms(int clusterIdx, int binCo
 	{
 		int Hbin = values[i][0] / binSize;
 		(*(histogramH.ptr(Hbin)))++;
-		//histogramH.at<int>(Hbin) = histogramH.at<int>(Hbin) + 1;
 		int Sbin = values[i][1] / binSize;
-		//histogramS.at<int>(Sbin) = histogramS.at<int>(Sbin) + 1;
 		(*(histogramS.ptr(Sbin)))++;
-		//histogram.at<int>(Hbin, Sbin) = histogram.at<int>(Hbin, Sbin) + 1;
 	}
 	return std::vector<cv::Mat>({ histogramH, histogramS });
 }
 
 /*
-	Finds the best matching color model using average color
-	@param avgColor the average color of the voxel cluster projections
+	Finds the best matching color model using histograms
+	@param histograms a vector with the color histograms
+*/
+std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms)
+{
+	//printHistograms(histograms); // DEBUG
+
+	// Collecting all permutations
+	std::vector<std::vector<int>> clusterMapping; // maps cluster centroid IDs to person IDs
+	std::vector<int> permutation = std::vector<int>(m_clusterCount);
+	for (int i = 0; i < m_clusterCount; i++) permutation[i] = i;
+	do { clusterMapping.push_back(permutation); }
+	while (std::next_permutation(permutation.begin(), permutation.end()));
+
+	// Exhaustively computing the distance for each mapping
+	std::vector<float> sumOfSquares;
+	for (int i = 0; i < m_clusterCount; i++) // for each permutation
+	{
+		sumOfSquares.push_back(0);
+		for (int j = 0; j < m_clusterCount; j++) // for each cluster
+		{
+			float dist1 = cv::EMDL1(m_histogramReference[clusterMapping[i][j]][0], histograms[j][0]);
+			//cv::Mat err1 = m_histogramReference[clustAssignment[j]][0] - histograms[j][0];
+			//float dist1 = err1.dot(err1);
+			float dist2 = cv::EMDL1(m_histogramReference[clusterMapping[i][j]][1], histograms[j][1]);
+			//cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
+			//float dist2 = err1.dot(err1);
+			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2); // DEBUG
+			sumOfSquares[i] += dist1 + dist2;
+		}
+		//printf("err: %.2f\n\n", sumOfSquares[i - 1]); // DEBUG
+		//printf(""); // DEBUG
+	}
+
+	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
+
+	//printf("Best index: %i\n", bestIndex); // DEBUG
+	//printf("\nBest: err = %.2f\n", sumOfSquares[bestIndex]); // DEBUG
+	//for (int i = 0; i < m_clusterCount; i++) printf("%i, %i: (%.2f)\n", clustAssignment[i], i); // DEBUG
+
+	return clusterMapping[bestIndex];
+}
+
+/*
+	The simplest histogram matching algorithm, finding the closest reference for each cluster
+	@param histograms a vector with the color histograms
+*/
+std::vector<int> Reconstructor::findClosestHistogramReferences(std::vector<std::vector<cv::Mat>> histograms)
+{
+	std::vector<int> bestMatch;
+	std::vector<float> closestDist;
+	for (int i = 0; i < m_clusterCount; i++) // for every cluster
+	{
+		bestMatch.push_back(-1);
+		closestDist.push_back(-1.0f);
+		for (int j = 0; j < m_clusterCount; j++) // for every reference
+		{
+			cv::Mat err1 = m_histogramReference[j][0] - histograms[i][0];
+			cv::Mat err2 = m_histogramReference[j][1] - histograms[i][1];
+			float sqrDist = err1.dot(err1) + err2.dot(err2);
+			if (closestDist[i] == -1.0 || sqrDist < closestDist[i])
+			{
+				bestMatch[i] = j;
+				closestDist[i] = sqrDist;
+			}
+		}
+	}
+	return bestMatch;
+}
+
+/*
+Computes the average color of the projected voxel cluster over all cameras
+@param clusterIdx the cluster for which to get the average color
+*/
+cv::Vec3b Reconstructor::getAverageColor(int clusterIdx)
+{
+	std::vector<cv::Vec3b> pixels;
+	int voxelCount = (int)m_visible_voxels.size(), cameraCount = m_cameras.size();
+#pragma omp parallel for schedule (auto) private(i) shared(pixels)
+	for (int i = 0; i < voxelCount; i++) if (m_clusterLabels[i] == clusterIdx) {
+		for (int c = 0; c < cameraCount; c++)
+		{
+			cv::Point pixId = m_visible_voxels[i]->camera_projection[c];
+			cv::Mat frame = m_cameras[c]->getFrame();
+#pragma omp critical
+			pixels.push_back(frame.at<Vec3b>(pixId.y, pixId.x));
+		}
+	}
+	cv::Vec3i sum;
+	int pixelCount = pixels.size();
+	for (int i = 0; i < pixelCount; i++) sum += pixels[i];
+	return cv::Vec3b(sum[0] / pixelCount, sum[1] / pixelCount, sum[2] / pixelCount);
+}
+
+/*
+Finds the best matching color model using average color
+@param avgColor the average color of the voxel cluster projections
 */
 std::vector<int> Reconstructor::findBestAvgColorMatches(std::vector<cv::Vec3b> avgColors)
 {
@@ -419,78 +482,6 @@ std::vector<int> Reconstructor::findBestAvgColorMatches(std::vector<cv::Vec3b> a
 	//	{
 	//		bestMatch = i;
 	//		closestDist = length;
-	//	}
-	//}
-	//return bestMatch;
-}
-
-/*
-	Finds the best matching color model using histograms
-	@param histograms a vector with the color histograms
-*/
-std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms)
-{
-	// Finding the mapping with the least squares (Euclidean)
-	std::vector<int> clustAssignment = std::vector<int>(m_clusterCount);
-	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
-
-	// DEBUG print histograms
-	//printf("\n");
-	//for (int i = 0; i < 10; i++) printf("%3d ", (256 / 9)*i);
-	//printf("\n");
-	//for (int i = 0; i < m_clusterCount; i++) {
-	//	for (int j = 0; j < 2; j++) {
-	//		for (int k = 0; k < 10; k++) {
-	//			printf("%3d ", *(histograms[i][j].ptr(k)));
-	//		}
-	//		printf("\n");
-	//	}
-	//}
-
-	int i = 0;
-	std::vector<float> sumOfSquares;
-	do
-	{
-		sumOfSquares.push_back(0);
-		for (int j = 0; j < m_clusterCount; j++)
-		{
-			float dist1 = cv::EMDL1(m_histogramReference[clustAssignment[j]][0], histograms[j][0]);
-			//cv::Mat err1 = m_histogramReference[clustAssignment[j]][0] - histograms[j][0];
-			//float dist1 = err1.dot(err1);
-			float dist2 = cv::EMDL1(m_histogramReference[clustAssignment[j]][1], histograms[j][1]);
-			//cv::Mat err2 = m_histogramReference[clustAssignment[j]][1] - histograms[j][1];
-			//float dist2 = err1.dot(err1);
-			//printf("%i, %i: (%.2f, %.2f)\n", clustAssignment[j], j, dist1, dist2); // DEBUG
-			sumOfSquares[i] += dist1 + dist2;
-		}
-		i++;
-		//printf("err: %.2f\n\n", sumOfSquares[i - 1]); // DEBUG
-		//printf(""); // DEBUG
-	} while (std::next_permutation(clustAssignment.begin(), clustAssignment.end()));
-	int bestIndex = std::distance(sumOfSquares.begin(), std::min_element(sumOfSquares.begin(), sumOfSquares.end()));
-	for (int i = 0; i < m_clusterCount; i++) clustAssignment[i] = i;
-	for (int i = 0; i < bestIndex; i++) std::next_permutation(clustAssignment.begin(), clustAssignment.end());
-	//printf("\nBest: err = %.2f\n", sumOfSquares[bestIndex]); // DEBUG
-	//for (int i = 0; i < m_clusterCount; i++) printf("%i, %i: (%.2f)\n", clustAssignment[i], i); // DEBUG
-	return clustAssignment;
-
-	//// Finding the closest reference per cluster (Euclidean)
-	//std::vector<int> bestMatch;
-	//std::vector<float> closestDist;
-	////cv::Mat dist = cv::Mat(m_clusterCount, m_clusterCount, CV_32F);
-	//for (int i = 0; i < m_clusterCount; i++)
-	//{
-	//	bestMatch.push_back(-1);
-	//	closestDist.push_back(-1.0f);
-	//	for (int j = 0; j < m_clusterCount; j++)
-	//	{
-	//		cv::Mat err = m_histogramReference[j] - histograms[i];
-	//		float sqrDist = err.dot(err);
-	//		if (closestDist[i] == -1.0 || sqrDist < closestDist[i])
-	//		{
-	//			bestMatch[i] = j;
-	//			closestDist[i] = sqrDist;
-	//		}
 	//	}
 	//}
 	//return bestMatch;

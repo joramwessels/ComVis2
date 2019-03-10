@@ -79,6 +79,7 @@ private:
 	
 	std::vector<int> findBestAvgColorMatches(std::vector<cv::Vec3b> avgColors);
 	std::vector<int> findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms);
+	std::vector<int> findClosestHistogramReferences(std::vector<std::vector<cv::Mat>> histograms);
 
 public:
 	Reconstructor(
@@ -191,6 +192,25 @@ public:
 			int y = static_cast<int>((centroid.y + m_height) / m_path_scale);
 
 			m_centroid_paths.at<uchar>(y, x) = 255;
+		}
+	}
+
+	/*
+		prints the histograms as a table for debugging
+		@param histograms the histogram vector
+	*/
+	void printHistograms(std::vector<std::vector<cv::Mat>> histograms)
+	{
+		printf("\n");
+		for (int i = 0; i < 10; i++) printf("%3d ", (256 / 9)*i);
+		printf("\n");
+		for (int i = 0; i < m_clusterCount; i++) {
+			for (int j = 0; j < 2; j++) {
+				for (int k = 0; k < 10; k++) {
+					printf("%3d ", *(histograms[i][j].ptr(k)));
+				}
+				printf("\n");
+			}
 		}
 	}
 
