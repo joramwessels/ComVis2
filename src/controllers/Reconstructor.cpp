@@ -284,9 +284,9 @@ void Reconstructor::cluster()
 	// Matching clusters with reference color models
 	if (m_histogramReference.size() == 0)
 		for (int i = 0; i < m_clusterCount; i++)
-			m_histogramReference.push_back(getColorHistograms(i));
+			m_histogramReference.push_back(getColorHistograms(i, m_histogramBinCount));
 	std::vector<std::vector<cv::Mat>> histograms = std::vector<std::vector<cv::Mat>>(m_clusterCount);
-	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistograms(i);
+	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistograms(i, m_histogramBinCount);
 	std::vector<int> clusterIdx = findBestHistogramMatches(histograms);
 
 	// Coloring voxels

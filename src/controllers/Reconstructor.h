@@ -62,6 +62,7 @@ private:
 	int m_path_scale;
 	cv::Mat m_centroid_paths;
 	double m_terminationDelta;
+	int m_histogramBinCount;
 	std::vector<int> m_clusterLabels;
 	std::vector<int> m_clusterColors = {
 		0xFF0000, 0xFF00, 0xFF,
@@ -146,12 +147,13 @@ public:
 	@param clusterCount the number of clusters to find
 	@param terminationDelta the change in cluster centroid at which to terminate the clustering
 	*/
-	void setParams(int clusterEpochs, int clusterCount, double terminationDelta)
+	void setParams(int clusterEpochs, int clusterCount, double terminationDelta, int histogramBinCount)
 	{
 		assert(clusterCount < 7 && clusterCount > 0);
 		m_clusterEpochs = clusterEpochs;
 		m_clusterCount = clusterCount;
 		m_terminationDelta = terminationDelta;
+		m_histogramBinCount = histogramBinCount;
 	}
 
 	/*

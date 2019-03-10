@@ -27,6 +27,7 @@ class VoxelReconstruction
 	int m_clusterEpochs = 10;
 	int m_clusterCount = 4;
 	double m_terminationDelta = 0.01;
+	int m_histogramBinCount = 20;
 
 	int m_h_thrs = 20;
 	int m_s_thrs = 20;
@@ -49,12 +50,13 @@ public:
 		@param clusterCount the number of clusters to find
 		@param terminationDelta the change in cluster centroid at which to terminate the clustering
 	*/
-	void setParams(int voxelStepSize, int clusterEpochs, int clusterCount, double terminationDelta)
+	void setParams(int voxelStepSize, int clusterEpochs, int clusterCount, double terminationDelta, int histogramBinCount)
 	{
 		m_voxelStepSize = voxelStepSize;
 		m_clusterEpochs = clusterEpochs;
 		m_clusterCount = clusterCount;
 		m_terminationDelta = terminationDelta;
+		m_histogramBinCount = histogramBinCount;
 	}
 
 	void setHSVThresholds(int h, int s, int v) { m_h_thrs = s; m_s_thrs = s; m_v_thrs = v; }
