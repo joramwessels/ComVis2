@@ -13,6 +13,7 @@
 #include "opencv2/imgproc.hpp"
 #include <stddef.h>
 #include <vector>
+#include "opencv2/imgproc.hpp"
 
 #include "Camera.h"
 

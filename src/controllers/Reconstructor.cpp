@@ -49,7 +49,8 @@ Reconstructor::Reconstructor(
 	m_voxels_amount = (edge / m_step) * (edge / m_step) * (m_height / m_step);
 
 	m_path_scale = 4;
-	m_centroid_paths = cv::Mat::zeros(edge / m_path_scale, edge / m_path_scale, CV_8U);
+	m_centroid_paths = cv::Mat::zeros(edge / m_path_scale, edge / m_path_scale, CV_8UC3);
+	m_centroid_paths.setTo(cv::Scalar(200, 200, 200));
 
 	Reconstructor::getSize();
 
