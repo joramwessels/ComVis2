@@ -9,6 +9,7 @@
 #define RECONSTRUCTOR_H_
 
 #include <opencv2/core/core.hpp>
+#include <opencv2\ml\ml.hpp>
 #include <stddef.h>
 #include <vector>
 
@@ -26,6 +27,7 @@ public:
 	 */
 	struct Voxel
 	{
+		//bool active = false;						// Whether or not the voxel should be drawn
 		int x, y, z;								// Coordinates
 		cv::Scalar color;							// Color
 		std::vector<cv::Point> camera_projection;	// Projection location for camera[c]'s FoV (2D)
@@ -48,15 +50,34 @@ private:
 
 	std::vector<Voxel*> m_voxels;           // Pointer vector to all voxels in the half-space
 	std::vector<Voxel*> m_visible_voxels;   // Pointer vector to all visible voxels
-	std::vector<int> m_clusterLabels;
 
 	void initialize();
+	void initVisibleVoxels();
 
 	// clustering
 	void cluster();
 	int m_clusterEpochs;
 	int m_clusterCount;
+	cv::Mat m_cluster_centroids;
+	int m_path_scale;
+	cv::Mat m_centroid_paths;
 	double m_terminationDelta;
+	std::vector<int> m_clusterLabels;
+	std::vector<int> m_clusterColors = {
+		0xFF0000, 0xFF00, 0xFF,
+		0xFFFF00, 0xFFFF, 0xFF00FF
+	};
+	cv::Vec3b m_avgColorReference[4] = {
+		cv::Vec3b(78, 72, 53), cv::Vec3b(43, 38, 26),
+		cv::Vec3b(72, 66, 53), cv::Vec3b(85, 72, 50)
+	};
+	std::vector<std::vector<cv::Mat>> m_histogramReference;
+
+	cv::Vec3b getAverageColor(int clusterIdx);
+	std::vector<cv::Mat> getColorHistograms(int clusterIdx, int bins=10);
+	
+	std::vector<int> findBestAvgColorMatches(std::vector<cv::Vec3b> avgColors);
+	std::vector<int> findBestHistogramMatches(std::vector<std::vector<cv::Mat>> histograms);
 
 public:
 	Reconstructor(
@@ -64,6 +85,8 @@ public:
 	virtual ~Reconstructor();
 
 	void update();
+
+	void initVoxelColoring();
 
 	// Returns which of two voxels should come first in an ordered voxel list
 	static bool voxelSort(Voxel &a, Voxel &b) {
@@ -142,6 +165,38 @@ public:
 			voxels.push_back(cv::Point3f(m_visible_voxels[i]->x, m_visible_voxels[i]->y, m_visible_voxels[i]->z));
 		return voxels;
 	}
+
+	/*
+		Returns the center of a centroid as a point2f (in xy space)
+		@param clusterIdx the index of the required cluster
+	*/
+	cv::Point2f getCentroid(int clusterIdx) {
+		float x = m_cluster_centroids.at<float>(clusterIdx, 0);
+		float y = m_cluster_centroids.at<float>(clusterIdx, 1);
+		return cv::Point2f(x, y);
+	}
+
+	void updateCentroidPaths() {
+		//cv::Point2f centroid = getCentroid(0);
+		//int x = static_cast<int>((centroid.y + m_height) / m_path_scale);
+		//int y = static_cast<int>((centroid.x + m_height) / m_path_scale);
+
+		//m_centroid_paths.at<uchar>(y, x) = 255;
+
+		for (int c = 0; c < m_clusterCount; c++) {
+			cv::Point2f centroid = getCentroid(c);
+			int x = static_cast<int>((centroid.x + m_height) / m_path_scale);
+			int y = static_cast<int>((centroid.y + m_height) / m_path_scale);
+
+			m_centroid_paths.at<uchar>(y, x) = 255;
+		}
+	}
+
+	cv::Mat getCentroidPaths() {
+		return m_centroid_paths;
+	}
+
+	cv::Mat foregroundMask(std::vector<Voxel*> voxels, int cam);
 };
 
 } /* namespace nl_uu_science_gmt */

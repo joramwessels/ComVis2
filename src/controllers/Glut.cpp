@@ -279,6 +279,8 @@ void Glut::keyboard(
 		{
 			bool paused = scene3d.isPaused();
 			scene3d.setPaused(!paused);
+			imshow("Path", m_Glut->getScene3d().getReconstructor().getCentroidPaths());
+			cv::waitKey(0);
 		}
 		else if (key == 'b' || key == 'B')
 		{
@@ -581,6 +583,9 @@ void Glut::update(
 	keyboard(key, 0, 0);  // call glut key handler :)
 
 	Scene3DRenderer& scene3d = m_Glut->getScene3d();
+	if (scene3d.getCurrentFrame() == 1) {
+		scene3d.getReconstructor().initVoxelColoring();
+	}
 	if (scene3d.isQuit())
 	{
 		// Quit signaled
@@ -635,14 +640,14 @@ void Glut::update(
 	if (scene3d.getCurrentCamera() != -1)
 	{
 		canvas = scene3d.getCameras()[scene3d.getCurrentCamera()]->getFrame();
-		//foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundImage();
-		foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundDifference();
+		foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundImage();
+		//foreground = scene3d.getCameras()[scene3d.getCurrentCamera()]->getForegroundDifference();
 	}
 	else
 	{
 		canvas = scene3d.getCameras()[scene3d.getPreviousCamera()]->getFrame();
-		//foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundImage();
-		foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundDifference();
+		foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundImage();
+		//foreground = scene3d.getCameras()[scene3d.getPreviousCamera()]->getForegroundDifference();
 	}
 
 	// Concatenate the video frame with the foreground image (of set camera)
@@ -853,6 +858,21 @@ void Glut::drawVoxels()
 	glTranslatef(0, 0, 0);
 	glPointSize(2.0f);
 	glBegin(GL_POINTS);
+
+	//vector<Reconstructor::Voxel*> voxels = m_Glut->getScene3d().getReconstructor().getVoxels();
+	//for (size_t v = 0; v < voxels.size(); v++)
+	//{
+	//	if (voxels[v]->active) {
+	//		//glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
+	//		uint color = *((uint*)(&(voxels[v]->color))); // casting pointer back to uint
+	//		GLfloat r = (GLfloat)((color >> 16) & 0xFF);
+	//		GLfloat g = (GLfloat)((color >> 8) & 0xFF);
+	//		GLfloat b = (GLfloat)((color >> 0) & 0xFF);
+	//		glColor4f(r, g, b, 0.5f); // use voxel color
+	//		glVertex3f((GLfloat)voxels[v]->x, (GLfloat)voxels[v]->y, (GLfloat)voxels[v]->z);
+	//	}	
+	//	
+	//}
 
 	vector<Reconstructor::Voxel*> voxels = m_Glut->getScene3d().getReconstructor().getVisibleVoxels();
 	for (size_t v = 0; v < voxels.size(); v++)

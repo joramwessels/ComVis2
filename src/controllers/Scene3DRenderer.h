@@ -315,6 +315,10 @@ public:
 		return m_num;
 	}
 
+	cv::Mat erodeBitmap(cv::Mat bitmap, int type, int size, int repeat = 1, bool show = false);
+
+	cv::Mat dilateBitmap(cv::Mat bitmap, int type, int size, int repeat = 1, bool show = false);
+
 	Reconstructor& getReconstructor() const
 	{
 		return m_reconstructor;

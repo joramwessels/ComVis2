@@ -145,7 +145,9 @@ void Scene3DRenderer::processForeground(
 	threshold(tmp, background, m_v_threshold, 255, CV_THRESH_BINARY);
 	bitwise_or(foreground, background, foreground);
 
-	// TODO: Improve the foreground image
+	foreground = dilateBitmap(foreground, cv::MORPH_ELLIPSE, 2);
+	foreground = erodeBitmap(foreground, cv::MORPH_CROSS, 6);
+	foreground = dilateBitmap(foreground, cv::MORPH_ELLIPSE, 4);
 
 	// Calculate and set the difference between last frame's and this frame's foreground area
 	if (!camera->getForegroundImage().empty()) {
@@ -225,6 +227,44 @@ void Scene3DRenderer::createFloorGrid()
 	m_floor_grid.push_back(edge2);
 	m_floor_grid.push_back(edge3);
 	m_floor_grid.push_back(edge4);
+}
+
+// Erodes a bitmap image.
+// Types: 0 = rectangle, 1 = cross, 2 = ellipse
+// Actual size: 2 * size + 1
+cv::Mat Scene3DRenderer::erodeBitmap(cv::Mat bitmap, int type, int size, int repeat, bool show) {
+	cv::Mat result = bitmap.clone();
+	cv::Mat element = cv::getStructuringElement(type, cv::Size(2 * size + 1, 2 * size + 1), cv::Point(size, size));
+
+	for (int i = 0; i < repeat; i++) {
+		erode(result, result, element);
+	}
+
+	if (show) {
+		cv::imshow("Erosion result", result);
+		cv::waitKey(0);
+	}
+
+	return result;
+}
+
+// Dilates a bitmap image.
+// Types: 0 = rectangle, 1 = cross, 2 = ellipse
+// Actual size: 2 * size + 1
+cv::Mat Scene3DRenderer::dilateBitmap(cv::Mat bitmap, int type, int size, int repeat, bool show) {
+	cv::Mat result = bitmap.clone();
+	cv::Mat element = cv::getStructuringElement(type, cv::Size(2 * size + 1, 2 * size + 1), cv::Point(size, size));
+
+	for (int i = 0; i < repeat; i++) {
+		dilate(result, result, element);
+	}
+
+	if (show) {
+		cv::imshow("Dilation result", result);
+		cv::waitKey(0);
+	}
+
+	return result;
 }
 
 void Scene3DRenderer::setHSVThreshold(int h, int s, int v)
