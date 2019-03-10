@@ -292,7 +292,7 @@ void Reconstructor::cluster()
 			m_histogramReference.push_back(getColorHistograms(i, m_histogramBinCount));
 	std::vector<std::vector<cv::Mat>> histograms = std::vector<std::vector<cv::Mat>>(m_clusterCount);
 	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistograms(i, m_histogramBinCount);
-	std::vector<int> clusterIdx = findBestHistogramMatches(histograms);
+	std::vector<int> m_clusterMapping = findBestHistogramMatches(histograms);
 
 	// Coloring voxels
 	uint color; // 0x00RRGGBB
@@ -300,7 +300,7 @@ void Reconstructor::cluster()
 	{
 		// Takes the color of the cluster reference corresponding to that cluster label
 		//	(i.e. voxel cluster label --> person ID --> color)
-		color = m_clusterColors[clusterIdx[m_clusterLabels[i]]];
+		color = m_clusterColors[m_clusterMapping[m_clusterLabels[i]]];
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 }

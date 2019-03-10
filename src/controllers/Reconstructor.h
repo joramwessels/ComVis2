@@ -59,6 +59,7 @@ private:
 	int m_clusterEpochs;
 	int m_clusterCount;
 	cv::Mat m_cluster_centroids;
+	std::vector<int> m_clusterMapping; // maps cluster ID to person ID
 	int m_path_scale;
 	cv::Mat m_centroid_paths;
 	double m_terminationDelta;
