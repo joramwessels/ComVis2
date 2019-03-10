@@ -174,7 +174,8 @@ public:
 		Returns the center of a centroid as a point2f (in xy space)
 		@param clusterIdx the index of the required cluster
 	*/
-	cv::Point2f getCentroid(int clusterIdx) {
+	cv::Point2f getCentroid(int a_clusterIdx) {
+		int clusterIdx = m_clusterMapping[a_clusterIdx];
 		float x = m_cluster_centroids.at<float>(clusterIdx, 0);
 		float y = m_cluster_centroids.at<float>(clusterIdx, 1);
 		return cv::Point2f(x, y);
