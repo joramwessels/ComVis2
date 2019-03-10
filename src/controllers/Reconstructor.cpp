@@ -284,7 +284,6 @@ void Reconstructor::cluster()
 	for (int i = 0; i < m_clusterCount; i++) centroids.row(i) = cv::Mat(1, 2, CV_32F, { (float)i, 0.0f });
 	cv::kmeans(dataPoints, m_clusterCount, m_clusterLabels, terminationCriteria, m_clusterEpochs, KMEANS_PP_CENTERS, centroids);
 	m_cluster_centroids = centroids;
-	updateCentroidPaths();
 
 	// Matching clusters with reference color models
 	if (m_histogramReference.size() == 0)
@@ -292,7 +291,7 @@ void Reconstructor::cluster()
 			m_histogramReference.push_back(getColorHistograms(i, m_histogramBinCount));
 	std::vector<std::vector<cv::Mat>> histograms = std::vector<std::vector<cv::Mat>>(m_clusterCount);
 	for (int i = 0; i < m_clusterCount; i++) histograms[i] = getColorHistograms(i, m_histogramBinCount);
-	std::vector<int> m_clusterMapping = findBestHistogramMatches(histograms);
+	m_clusterMapping = findBestHistogramMatches(histograms);
 
 	// Coloring voxels
 	uint color; // 0x00RRGGBB
@@ -303,6 +302,7 @@ void Reconstructor::cluster()
 		color = m_clusterColors[m_clusterMapping[m_clusterLabels[i]]];
 		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
+	updateCentroidPaths();
 }
 
 /*
@@ -369,7 +369,7 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 	int bestMappingIndex = -1;
 	float smallestError = -1.0f;
 	float highestError = -1.0f; // DEBUG
-//#pragma omp parallel for schedule(auto) shared(bestMappingIndex, smallestError, highestError)
+	#pragma omp parallel for schedule(auto) shared(bestMappingIndex, smallestError, highestError)
 	for (int i = 0; i < permutationCount; i++) // for each permutation
 	{
 		double summedError = 0;
@@ -386,7 +386,7 @@ std::vector<int> Reconstructor::findBestHistogramMatches(std::vector<std::vector
 		}
 		summedError *= 10000000000000000000000000000000000000000.0;
 		//printf("Permutation %i: (%i, %i, %i, %i), err: %f\n", i, clusterMapping[i][0], clusterMapping[i][1], clusterMapping[i][2], clusterMapping[i][3], summedError); // DEBUG
-//#pragma omp critical
+		#pragma omp critical
 		if (bestMappingIndex == -1 || summedError < smallestError)
 		{
 			bestMappingIndex = i;
