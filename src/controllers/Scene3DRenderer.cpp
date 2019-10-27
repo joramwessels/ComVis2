@@ -151,9 +151,13 @@ void Scene3DRenderer::processForeground(
 
 	// Calculate and set the difference between last frame's and this frame's foreground area
 	if (!camera->getForegroundImage().empty()) {
-		cv::Mat diff;
-		bitwise_xor(camera->getForegroundImage(), foreground, diff);
-		camera->setForegroundDifference(diff);
+		cv::Mat new_pixels;
+		bitwise_xor(camera->getForegroundImage(), foreground, new_pixels, foreground);
+		camera->setNewPixels(new_pixels);
+
+		cv::Mat old_pixels;
+		bitwise_xor(camera->getForegroundImage(), foreground, old_pixels, camera->getForegroundImage());
+		camera->setOldPixels(old_pixels);
 	}
 
 	camera->setForegroundImage(foreground);

@@ -238,11 +238,11 @@ int main(int argc, char** argv)
 
 	//std::vector<std::vector<std::vector<float>>> test;
 
-	//cv::Mat testMat1 = cv::imread("data/test/testimage1.bmp", CV_LOAD_IMAGE_GRAYSCALE);
-	//cv::Mat testMat2 = cv::imread("data/test/testimage2.bmp", CV_LOAD_IMAGE_GRAYSCALE);
-	//cv::Mat testMask = cv::imread("data/test/mask.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	//cv::Mat testMat1 = cv::imread("data/test/testimage2.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	//cv::Mat testMat2 = cv::imread("data/test/testimage3.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	//cv::Mat testMask = cv::imread("data/test/whitemask.bmp", CV_LOAD_IMAGE_GRAYSCALE);
 
-	//cv::Mat diff = foregroundDiff(testMat1, testMat2, testMask);
+	// cv::Mat diff = foregroundDiff(testMat1, testMat2, testMat2);
 
 	//cv::imshow("Difference", diff);
 	//cv::waitKey(0);

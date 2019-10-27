@@ -31,7 +31,8 @@ class Camera
 
 	std::vector<cv::Mat> m_bg_hsv_channels;							// Background HSV channel images
 	cv::Mat m_foreground_image;										// This camera's foreground image (binary)
-	cv::Mat m_foreground_difference;								// The difference (xor) between last frame's and current frame's foreground (binary)
+	cv::Mat m_new_pixels;											// The pixels that went from inactive to active in the last frame
+	cv::Mat m_old_pixels;											// The pixels that went from active to inactive in the last frame
 
 	cv::VideoCapture m_video;										// Video reader
 
@@ -128,17 +129,31 @@ public:
 
 	void setForegroundImage(const cv::Mat& foregroundImage)
 	{
+		/*cv::Mat d;
+		bitwise_xor(getForegroundImage(), foregroundImage, d, foregroundImage);
+		m_foreground_difference = d;*/
+
 		m_foreground_image = foregroundImage;
 	}
 
-	const cv::Mat& getForegroundDifference() const
+	const cv::Mat& getNewPixels()
 	{
-		return m_foreground_difference;
+		return m_new_pixels;
 	}
 
-	void setForegroundDifference(const cv::Mat& foregroundDifference)
+	void setNewPixels(const cv::Mat& newPixels)
 	{
-		m_foreground_difference = foregroundDifference;
+		m_new_pixels = newPixels;
+	}
+
+	const cv::Mat& getOldPixels()
+	{
+		return m_old_pixels;
+	}
+
+	void setOldPixels(const cv::Mat& oldPixels)
+	{
+		m_old_pixels = oldPixels;
 	}
 
 	const cv::Mat& getFrame() const

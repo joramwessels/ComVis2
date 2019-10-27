@@ -29,7 +29,7 @@ public:
 	 */
 	struct Voxel
 	{
-		//bool active = false;						// Whether or not the voxel should be drawn
+		bool active = false;						// Whether or not the voxel should be drawn
 		int x, y, z;								// Coordinates
 		cv::Scalar color;							// Color
 		std::vector<cv::Point> camera_projection;	// Projection location for camera[c]'s FoV (2D)
@@ -55,6 +55,9 @@ private:
 
 	void initialize();
 	void initVisibleVoxels();
+
+	int frame_count = 0;
+	time_t start_time;
 
 	// clustering
 	void cluster();

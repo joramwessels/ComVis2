@@ -89,6 +89,9 @@ bool Camera::initialize()
 	m_plane_size.height = (int) m_video.get(CV_CAP_PROP_FRAME_HEIGHT);
 	assert(m_plane_size.area() > 0);
 
+	/*cv::Mat fg_image(m_plane_size.height, m_plane_size.width, CV_8UC1, 0);
+	m_foreground_image = fg_image;*/
+
 	// Get the amount of video frames
 	m_video.set(CV_CAP_PROP_POS_AVI_RATIO, 1);  // Go to the end of the video; 1 = 100%
 	m_frame_amount = (long) m_video.get(CV_CAP_PROP_POS_FRAMES);
