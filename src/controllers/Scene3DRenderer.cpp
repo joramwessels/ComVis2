@@ -158,6 +158,10 @@ void Scene3DRenderer::processForeground(
 		cv::Mat old_pixels;
 		bitwise_xor(camera->getForegroundImage(), foreground, old_pixels, camera->getForegroundImage());
 		camera->setOldPixels(old_pixels);
+
+		cv::Mat diff_pixels;
+		bitwise_xor(camera->getForegroundImage(), foreground, diff_pixels);
+		camera->setDiffPixels(diff_pixels);
 	}
 
 	camera->setForegroundImage(foreground);

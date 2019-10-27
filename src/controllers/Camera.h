@@ -33,6 +33,7 @@ class Camera
 	cv::Mat m_foreground_image;										// This camera's foreground image (binary)
 	cv::Mat m_new_pixels;											// The pixels that went from inactive to active in the last frame
 	cv::Mat m_old_pixels;											// The pixels that went from active to inactive in the last frame
+	cv::Mat m_diff_pixels;											// The pixels that changed from the last frame to the current
 
 	cv::VideoCapture m_video;										// Video reader
 
@@ -151,9 +152,19 @@ public:
 		return m_old_pixels;
 	}
 
-	void setOldPixels(const cv::Mat& oldPixels)
+	void setOldPixels(const cv::Mat& diffPixels)
 	{
-		m_old_pixels = oldPixels;
+		m_old_pixels = diffPixels;
+	}
+
+	const cv::Mat& getDiffPixels()
+	{
+		return m_diff_pixels;
+	}
+
+	void setDiffPixels(const cv::Mat& diffPixels)
+	{
+		m_diff_pixels = diffPixels;
 	}
 
 	const cv::Mat& getFrame() const
