@@ -197,7 +197,10 @@ void Reconstructor::initVoxelColoring() { // TODO never gets called?
  */
 void Reconstructor::update()
 {
-	int mode = 2;
+	int mode = 1;
+	// 0: diff
+	// 1: camera 0 foreground
+	// 2: loop over voxels
 
 	// Initialize visible voxels vector
 	if (m_visible_voxels.size() == 0) { initVisibleVoxels(); return; }
@@ -209,20 +212,6 @@ void Reconstructor::update()
 		time_t end_time = time(0);
 		cout << "\nElapsed time: " << end_time - start_time << "s" << endl;
 		cout << "Average FPS:  " << 2721 / (end_time - start_time) << endl;
-	}
-
-	if (frame_count == 10000) {
-		cv::Mat foreground = m_cameras[0]->getForegroundImage();
-		cv::imshow("Foreground", foreground);
-		cv::waitKey(0);
-
-		cv::Mat old_px = m_cameras[0]->getOldPixels();
-		cv::imshow("Old pixels", old_px);
-		cv::waitKey(0);
-
-		cv::Mat new_px = m_cameras[0]->getNewPixels();
-		cv::imshow("New pixels", new_px);
-		cv::waitKey(0);
 	}
 
 	// -------------------------------------------------------------------------------------------------------------------------
@@ -292,63 +281,33 @@ void Reconstructor::update()
 	// -------------------------------------------------------------------------------------------------------------------------
 
 	if (mode == 1) {
-		// Voxels that were potentially changed from the last frame to the current.
-		// These voxels should be updated to reflect any possible changes.
-		std::vector<Voxel*> changed_voxels;
-		int cameraCount = (int)m_cameras.size();
-		for (int c = 0; c < cameraCount; c++)
-		{
-			cv::Mat changed_pixels = m_cameras[c]->getDiffPixels();
-			for (int y = 0; y < changed_pixels.rows; y++) for (int x = 0; x < changed_pixels.cols; x++)
-			{
-				if (changed_pixels.at<uchar>(y, x) == 255) {
-					changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][(y * m_plane_size.width) + x].begin(), m_voxel_pointers[c][(y * m_plane_size.width) + x].end());
+		m_visible_voxels.clear();
+
+		cv::Mat active_pixels = m_cameras[0]->getForegroundImage();
+		for (int y = 0; y < m_plane_size.height; y++) for (int x = 0; x < m_plane_size.width; x++) {
+			if (active_pixels.at<uchar>(y, x) == 255) {
+				for (int v = 0; v < m_voxel_pointers[0][(y * m_plane_size.width) + x].size(); v++) {
+					bool active = true;
+					for (int c = 1; c < m_cameras.size(); c++) {
+						if (m_voxel_pointers[0][(y * m_plane_size.width) + x][v]->valid_camera_projection[c]) {
+							const Point point = m_voxel_pointers[0][(y * m_plane_size.width) + x][v]->camera_projection[c];
+							if (m_cameras[c]->getForegroundImage().at<uchar>(point) != 255) {
+								active = false;
+								break;
+							}
+						}
+						else {
+							active = false;
+							break;
+						}
+					}
+					if (active) {
+						m_visible_voxels.push_back(m_voxel_pointers[0][(y * m_plane_size.width) + x][v]);
+					}
 				}
 			}
 		}
 
-		int v;
-		int changed_voxel_count = (int)changed_voxels.size();
-#pragma omp parallel for schedule(auto) private(v) shared(changed_voxels)
-
-		// For potentially changed voxels
-		for (v = 0; v < changed_voxel_count; ++v)
-		{
-			int camera_counter = 0;
-			Voxel* voxel = changed_voxels[v];
-
-			for (int c = 0; c < cameraCount; ++c)
-			{
-				if (voxel->valid_camera_projection[c])
-				{
-					const Point point = voxel->camera_projection[c];
-
-					//If there's a white pixel on the foreground image at the projection point, add the camera
-					if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 0) break;
-
-					camera_counter++;
-				}
-			}
-
-			// if (camera_counter < cameraCount) continue;
-
-			// checking if voxel is already in the visible voxels vector
-			int voxIndex = -1, vixVoxCount = m_visible_voxels.size();
-
-			//size_t voxIndex = std::find(m_visible_voxels.begin(), m_visible_voxels.end(), voxel);
-			for (int i = 0; i < vixVoxCount; i++) {
-				if (m_visible_voxels[i] == voxel) {
-					voxIndex = i;
-					break;
-				}
-			}
-
-#pragma omp critical
-			// Updating visible voxels vector accordingly
-			bool active = (camera_counter == cameraCount), inVector = (voxIndex != -1);
-			if (active && !inVector) m_visible_voxels.push_back(voxel);
-			if (!active && inVector) m_visible_voxels.erase(m_visible_voxels.begin() + voxIndex);
-		}
 		cluster();
 	}
 
