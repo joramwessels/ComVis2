@@ -154,7 +154,7 @@ void Reconstructor::initialize()
 					// If it's within the camera's FoV, flag the projection
 					if (point.x >= 0 && point.x < m_plane_size.width && point.y >= 0 && point.y < m_plane_size.height) {
 						voxel->valid_camera_projection[(int)c] = 1;
-						m_voxel_pointers[c][point.x * point.y].push_back(voxel);
+						m_voxel_pointers[c][(point.y * m_plane_size.width) + point.x].push_back(voxel);
 					}
 				}
 
@@ -233,8 +233,8 @@ void Reconstructor::update()
 			cv::Mat old_pixels = m_cameras[c]->getOldPixels();
 			for (int y = 0; y < old_pixels.rows; y++) for (int x = 0; x < old_pixels.cols; x++) {
 				if (old_pixels.at<uchar>(y, x) == 255) {
-					for (int v = 0; v < m_voxel_pointers[c][x * y].size(); v++) {
-						m_voxel_pointers[c][x * y][v]->active = false;
+					for (int v = 0; v < m_voxel_pointers[c][(y * m_plane_size.width) + x].size(); v++) {
+						m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = false;
 					}
 				}
 			}
@@ -257,15 +257,15 @@ void Reconstructor::update()
 				if (new_pixels.at<uchar>(y, x) == 255) {
 
 					// For every voxel corersponding to that pixel
-					for (int v = 0; v < m_voxel_pointers[c][x * y].size(); v++) {
+					for (int v = 0; v < m_voxel_pointers[c][(y * m_plane_size.width) + x].size(); v++) {
 
 						// If it's not active, check if it should be active
-						if (!m_voxel_pointers[c][x * y][v]->active) {
+						if (!m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active) {
 							bool active = true;
 							for (int c2 = 0; c2 < m_cameras.size(); c2++) {
 								// if (c == c2) { continue; }
-								if (m_voxel_pointers[c][x * y][v]->valid_camera_projection[c2]) {
-									const Point point = m_voxel_pointers[c][x * y][v]->camera_projection[c2];
+								if (m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->valid_camera_projection[c2]) {
+									const Point point = m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->camera_projection[c2];
 									if (m_cameras[c2]->getForegroundImage().at<uchar>(point) != 255) {
 										active = false;
 										break;
@@ -277,8 +277,8 @@ void Reconstructor::update()
 								}
 							}
 							if (active) {
-								m_voxel_pointers[c][x * y][v]->active = true;
-								m_visible_voxels.push_back(m_voxel_pointers[c][x * y][v]);
+								m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = true;
+								m_visible_voxels.push_back(m_voxel_pointers[c][(y * m_plane_size.width) + x][v]);
 							}
 						}
 					}
@@ -302,7 +302,7 @@ void Reconstructor::update()
 			for (int y = 0; y < changed_pixels.rows; y++) for (int x = 0; x < changed_pixels.cols; x++)
 			{
 				if (changed_pixels.at<uchar>(y, x) == 255) {
-					changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][x * y].begin(), m_voxel_pointers[c][x * y].end());
+					changed_voxels.insert(changed_voxels.end(), m_voxel_pointers[c][(y * m_plane_size.width) + x].begin(), m_voxel_pointers[c][(y * m_plane_size.width) + x].end());
 				}
 			}
 		}
