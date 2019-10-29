@@ -197,7 +197,7 @@ void Reconstructor::initVoxelColoring() { // TODO never gets called?
  */
 void Reconstructor::update()
 {
-	int mode = 1;
+	int mode = 0;
 	// 0: diff
 	// 1: camera 0 foreground
 	// 2: loop over voxels
@@ -205,34 +205,50 @@ void Reconstructor::update()
 	// Initialize visible voxels vector
 	if (m_visible_voxels.size() == 0) { initVisibleVoxels(); return; }
 
-	if (frame_count == 0) { start_time = time(0); }
+	if (frame_count == 0) {
+		cout << "\nTime started" << endl;
+		cout << "Sizeof struct: " << sizeof(Voxel) << endl;
+		start_time = time(0);
+	}
 	frame_count++;
 
-	if (frame_count == 2723) {
+	if (frame_count == 500) {
 		time_t end_time = time(0);
 		cout << "\nElapsed time: " << end_time - start_time << "s" << endl;
-		cout << "Average FPS:  " << 2721 / (end_time - start_time) << endl;
+		cout << "Average FPS:  " << 500 / (end_time - start_time) << endl;
 	}
 
 	// -------------------------------------------------------------------------------------------------------------------------
 
 	if (mode == 0) {
-		// For every pixel that went from active to inactive in the last frame, set their corresponding voxels to inactive
-		for (int c = 0; c < m_cameras.size(); c++) {
-			cv::Mat old_pixels = m_cameras[c]->getOldPixels();
-			for (int y = 0; y < old_pixels.rows; y++) for (int x = 0; x < old_pixels.cols; x++) {
-				if (old_pixels.at<uchar>(y, x) == 255) {
-					for (int v = 0; v < m_voxel_pointers[c][(y * m_plane_size.width) + x].size(); v++) {
-						m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = false;
-					}
-				}
-			}
-		}
+		//// For every pixel that went from active to inactive in the last frame, set their corresponding voxels to inactive
+		//for (int c = 0; c < m_cameras.size(); c++) {
+		//	cv::Mat old_pixels = m_cameras[c]->getOldPixels();
+		//	for (int y = 0; y < old_pixels.rows; y++) for (int x = 0; x < old_pixels.cols; x++) {
+		//		if (old_pixels.at<uchar>(y, x) == 255) {
+		//			for (int v = 0; v < m_voxel_pointers[c][(y * m_plane_size.width) + x].size(); v++) {
+		//				m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = false;
+		//			}
+		//		}
+		//	}
+		//}
 
-		// Remove all inactive voxels from visible voxels vector
-		for (int i = 0; i < m_visible_voxels.size(); i++) {
-			if (!m_visible_voxels[i]->active) {
-				m_visible_voxels.erase(m_visible_voxels.begin() + i);
+		//// Remove all inactive voxels from visible voxels vector
+		//for (int i = 0; i < m_visible_voxels.size(); i++) {
+		//	if (!m_visible_voxels[i]->active) {
+		//		m_visible_voxels.erase(m_visible_voxels.begin() + i);
+		//	}
+		//}
+
+		for (int c = 0; c < m_cameras.size(); c++) {
+			cv::Mat foreground = m_cameras[c]->getForegroundImage();
+
+			for (int i = 0; i < m_visible_voxels.size(); i++) {
+				const Point point = m_visible_voxels[i]->camera_projection[c];
+				if (foreground.at<uchar>(point) == 0) {
+					m_visible_voxels[i]->active = false;
+					m_visible_voxels.erase(m_visible_voxels.begin() + i);
+				}
 			}
 		}
 
