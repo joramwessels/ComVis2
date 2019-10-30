@@ -579,8 +579,8 @@ void Glut::display()
 void Glut::update(
 		int v)
 {
-	char key = waitKey(10);
-	keyboard(key, 0, 0);  // call glut key handler :)
+	//char key = waitKey(10);
+	//keyboard(key, 0, 0);  // call glut key handler :)
 
 	Scene3DRenderer& scene3d = m_Glut->getScene3d();
 	if (scene3d.getCurrentFrame() == 1) {
@@ -865,11 +865,11 @@ void Glut::drawVoxels()
 	for (size_t v = 0; v < voxels.size(); v++)
 	{
 		//glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-		uint color = *((uint*)(&(voxels[v]->color))); // casting pointer back to uint
-		GLfloat r = (GLfloat)((color >> 16) & 0xFF);
-		GLfloat g = (GLfloat)((color >> 8) & 0xFF);
-		GLfloat b = (GLfloat)((color >> 0) & 0xFF);
-		glColor4f(r, g, b, 0.5f); // use voxel color
+		//uint color = 0;
+		//GLfloat r = (GLfloat)((color >> 16) & 0xFF);
+		//GLfloat g = (GLfloat)((color >> 8) & 0xFF);
+		//GLfloat b = (GLfloat)((color >> 0) & 0xFF);
+		glColor4f(0.0f, 0.0f, 0.0f, 0.5f); // use voxel color
 		glVertex3f((GLfloat) voxels[v]->x, (GLfloat) voxels[v]->y, (GLfloat) voxels[v]->z);
 	}
 

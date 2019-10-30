@@ -78,6 +78,10 @@ Reconstructor::~Reconstructor()
  */
 void Reconstructor::initialize()
 {
+	cout << "Voxel size: " << sizeof(Voxel) << endl;
+
+	time_t init_start_time = time(0);
+
 	// Cube dimensions from [(-m_height, m_height), (-m_height, m_height), (0, m_height)]
 	const int xL = -m_height;
 	const int xR = m_height;
@@ -104,17 +108,15 @@ void Reconstructor::initialize()
 
 	// Acquire some memory for efficiency
 	cout << "Initializing " << m_voxels_amount << " voxels: ";
-	m_voxels.resize(m_voxels_amount);
+	// m_voxels.resize(m_voxels_amount);
 
 	int z;
 	int pdone = 0;
-#pragma omp parallel for schedule(auto) private(z) shared(pdone)
 	for (z = zL; z < zR; z += m_step)
 	{
 		const int zp = (z - zL) / m_step;
 		int done = cvRound((zp * plane / (double) m_voxels_amount) * 100.0);
 
-#pragma omp critical
 		if (done > pdone)
 		{
 			pdone = done;
@@ -140,11 +142,15 @@ void Reconstructor::initialize()
 				voxel->y = y;
 				voxel->z = z;
 				voxel->camera_projection = vector<Point>(m_cameras.size());
-				voxel->valid_camera_projection = vector<int>(m_cameras.size(), 0);
+				// voxel->valid_camera_projection = vector<int>(m_cameras.size(), 0);
+
+				vector<Point> camera_projections;
+				camera_projections.resize(4);
 
 				const int p = zp * plane + yp * plane_x + xp;  // The voxel's index
 
-				for (size_t c = 0; c < m_cameras.size(); ++c)
+				bool valid = true;
+				for (int c = 0; c < m_cameras.size(); ++c)
 				{
 					Point point = m_cameras[c]->projectOnView(Point3f((float) x, (float) y, (float) z));
 
@@ -153,18 +159,34 @@ void Reconstructor::initialize()
 
 					// If it's within the camera's FoV, flag the projection
 					if (point.x >= 0 && point.x < m_plane_size.width && point.y >= 0 && point.y < m_plane_size.height) {
-						voxel->valid_camera_projection[(int)c] = 1;
-						m_voxel_pointers[c][(point.y * m_plane_size.width) + point.x].push_back(voxel);
+						// voxel->valid_camera_projection[(int)c] = 1;
+						camera_projections[c] = point;
+						// m_voxel_pointers[c][(point.y * m_plane_size.width) + point.x].push_back(voxel);
+					}
+					else {
+						valid = false;
+						break;
 					}
 				}
 
-				//Writing voxel 'p' is not critical as it's unique (thread safe)
-				m_voxels[p] = voxel;
+				// Writing voxel 'p' is not critical as it's unique (thread safe)
+				if (valid) {
+					for (int c = 0; c < m_cameras.size(); ++c) {
+						Point point = camera_projections[c];
+						m_voxel_pointers[c][(point.y * m_plane_size.width) + point.x].push_back(voxel);
+					}
+					m_voxels.push_back(voxel);
+				}
+				// m_voxels[p] = voxel;
 			}
 		}
 	}
-	
-	cout << "\tdone!" << endl;
+
+	m_voxels_amount = m_voxels.size();
+
+	time_t init_end_time = time(0);
+	cout << "\n\nInitialization time: " << init_end_time - init_start_time << "s" << endl;
+	cout << "Initialized " << m_voxels.size() << " voxels" << endl;
 }
 
 void Reconstructor::initVoxelColoring() { // TODO never gets called?
@@ -177,13 +199,10 @@ void Reconstructor::initVoxelColoring() { // TODO never gets called?
 
 		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
-			if (voxel->valid_camera_projection[c])
-			{
-				const Point point = voxel->camera_projection[c];
+			const Point point = voxel->camera_projection[c];
 
-				//If there's a white pixel on the foreground image at the projection point, add the camera
-				if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 255) ++camera_counter;
-			}
+			//If there's a white pixel on the foreground image at the projection point, add the camera
+			if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 255) ++camera_counter;
 		}
 
 		//voxel->active = (camera_counter == m_cameras.size());
@@ -207,7 +226,6 @@ void Reconstructor::update()
 
 	if (frame_count == 0) {
 		cout << "\nTime started" << endl;
-		cout << "Sizeof struct: " << sizeof(Voxel) << endl;
 		start_time = time(0);
 	}
 	frame_count++;
@@ -248,6 +266,7 @@ void Reconstructor::update()
 				if (foreground.at<uchar>(point) == 0) {
 					m_visible_voxels[i]->active = false;
 					m_visible_voxels.erase(m_visible_voxels.begin() + i);
+					i--;
 				}
 			}
 		}
@@ -268,15 +287,8 @@ void Reconstructor::update()
 						if (!m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active) {
 							bool active = true;
 							for (int c2 = 0; c2 < m_cameras.size(); c2++) {
-								// if (c == c2) { continue; }
-								if (m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->valid_camera_projection[c2]) {
-									const Point point = m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->camera_projection[c2];
-									if (m_cameras[c2]->getForegroundImage().at<uchar>(point) != 255) {
-										active = false;
-										break;
-									}
-								}
-								else {
+								const Point point = m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->camera_projection[c2];
+								if (m_cameras[c2]->getForegroundImage().at<uchar>(point) == 0) {
 									active = false;
 									break;
 								}
@@ -290,8 +302,6 @@ void Reconstructor::update()
 				}
 			}
 		}
-
-		cluster();
 	}
 
 	// -------------------------------------------------------------------------------------------------------------------------
@@ -305,14 +315,8 @@ void Reconstructor::update()
 				for (int v = 0; v < m_voxel_pointers[0][(y * m_plane_size.width) + x].size(); v++) {
 					bool active = true;
 					for (int c = 1; c < m_cameras.size(); c++) {
-						if (m_voxel_pointers[0][(y * m_plane_size.width) + x][v]->valid_camera_projection[c]) {
-							const Point point = m_voxel_pointers[0][(y * m_plane_size.width) + x][v]->camera_projection[c];
-							if (m_cameras[c]->getForegroundImage().at<uchar>(point) != 255) {
-								active = false;
-								break;
-							}
-						}
-						else {
+						const Point point = m_voxel_pointers[0][(y * m_plane_size.width) + x][v]->camera_projection[c];
+						if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 0) {
 							active = false;
 							break;
 						}
@@ -323,15 +327,12 @@ void Reconstructor::update()
 				}
 			}
 		}
-
-		cluster();
 	}
 
 	// -------------------------------------------------------------------------------------------------------------------------
 
 	if (mode == 2) {
 		initVisibleVoxels();
-		cluster();
 	}
 }
 
@@ -387,7 +388,7 @@ void Reconstructor::cluster()
 		// Takes the color of the cluster reference corresponding to that cluster label
 		//	(i.e. voxel cluster label --> person ID --> color)
 		color = m_clusterColors[m_clusterMapping[m_clusterLabels[i]]];
-		*((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
+		// *((uint*)(&(m_visible_voxels[i]->color))) = color; // got tired of casting cv::Scalar to GLfloat
 	}
 	updateCentroidPaths();
 }
@@ -603,17 +604,11 @@ void Reconstructor::initVisibleVoxels()
 		// For every camera
 		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
-			if (voxel->valid_camera_projection[c])
-			{
-				const Point point = voxel->camera_projection[c];
+			const Point point = voxel->camera_projection[c];
 
-				//If there's a white pixel on the foreground image at the projection point, add the camera
-				if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 0) break;
-				camera_counter++;
-			}
-			else {
-				break;
-			}
+			//If there's a white pixel on the foreground image at the projection point, add the camera
+			if (m_cameras[c]->getForegroundImage().at<uchar>(point) == 0) break;
+			camera_counter++;
 		}
 
 		// If the voxel is present on all cameras

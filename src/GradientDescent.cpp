@@ -140,7 +140,7 @@ std::vector<cv::Vec3f> trainThresholdValues(const char* datafolder, const char* 
 		int frameCount = 0;
 		cv::Vec3d sum = cv::Vec3b({0, 0, 0});
 		cv::Mat frame;
-		int maxframes = 50; // DEBUG
+		int maxframes = 200; // DEBUG
 		while (cap.read(frame))
 		{
 			if (frameCount >= maxframes) break; // DEBUG
