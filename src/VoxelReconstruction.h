@@ -50,13 +50,9 @@ public:
 		@param clusterCount the number of clusters to find
 		@param terminationDelta the change in cluster centroid at which to terminate the clustering
 	*/
-	void setParams(int voxelStepSize, int clusterEpochs, int clusterCount, double terminationDelta, int histogramBinCount)
+	void setParams(int voxelStepSize)
 	{
 		m_voxelStepSize = voxelStepSize;
-		m_clusterEpochs = clusterEpochs;
-		m_clusterCount = clusterCount;
-		m_terminationDelta = terminationDelta;
-		m_histogramBinCount = histogramBinCount;
 	}
 
 	void setHSVThresholds(int h, int s, int v) { m_h_thrs = s; m_s_thrs = s; m_v_thrs = v; }

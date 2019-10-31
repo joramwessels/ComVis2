@@ -10,7 +10,8 @@ int main(int argc, char** argv)
 
 	VoxelReconstruction::showKeys();
 	VoxelReconstruction vr("data/4persons" + std::string(PATH_SEP), 4);
-	vr.setParams(256, 10, 4, 0.01, 10); // passing clustering parameters
+
+	vr.setParams(16);
 	vr.setHSVThresholds(5, 10, 50);
 	vr.run(argc, argv);
 

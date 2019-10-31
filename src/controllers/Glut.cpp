@@ -861,16 +861,14 @@ void Glut::drawVoxels()
 	glPointSize(2.0f);
 	glBegin(GL_POINTS);
 
-	vector<Reconstructor::Voxel*> voxels = m_Glut->getScene3d().getReconstructor().getVisibleVoxels();
+	vector<Reconstructor::Voxel*> voxels = m_Glut->getScene3d().getReconstructor().getVoxels();
 	for (size_t v = 0; v < voxels.size(); v++)
 	{
-		//glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-		//uint color = 0;
-		//GLfloat r = (GLfloat)((color >> 16) & 0xFF);
-		//GLfloat g = (GLfloat)((color >> 8) & 0xFF);
-		//GLfloat b = (GLfloat)((color >> 0) & 0xFF);
-		glColor4f(0.0f, 0.0f, 0.0f, 0.5f); // use voxel color
-		glVertex3f((GLfloat) voxels[v]->x, (GLfloat) voxels[v]->y, (GLfloat) voxels[v]->z);
+		if (voxels[v]->active) {
+			glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+			glVertex3f((GLfloat)voxels[v]->x, (GLfloat)voxels[v]->y, (GLfloat)voxels[v]->z);
+		}
+		
 	}
 
 	glEnd();

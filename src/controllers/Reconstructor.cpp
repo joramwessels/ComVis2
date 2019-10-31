@@ -216,10 +216,11 @@ void Reconstructor::initVoxelColoring() { // TODO never gets called?
  */
 void Reconstructor::update()
 {
-	int mode = 0;
+	int mode = 3;
 	// 0: diff
 	// 1: camera 0 foreground
 	// 2: loop over voxels
+	// 3: GPGPU
 
 	// Initialize visible voxels vector
 	if (m_visible_voxels.size() == 0) { initVisibleVoxels(); return; }
@@ -234,6 +235,47 @@ void Reconstructor::update()
 		time_t end_time = time(0);
 		cout << "\nElapsed time: " << end_time - start_time << "s" << endl;
 		cout << "Average FPS:  " << 500 / (end_time - start_time) << endl;
+	}
+
+	if (mode == 3) {
+		for (int c = 0; c < m_cameras.size(); c++) {
+			cv::Mat diff_pixels = m_cameras[c]->getDiffPixels();
+
+			// For every different pixels in this camera's view
+			for (int y = 0; y < diff_pixels.rows; y++) for (int x = 0; x < diff_pixels.cols; x++) {
+				if (diff_pixels.at<uchar>(y, x) == 255) {
+
+					// For every voxel corresponding to that pixel
+					for (int v = 0; v < m_voxel_pointers[c][(y * m_plane_size.width) + x].size(); v++) {
+
+						// If the voxel is active, check if it should be inactive
+						if (m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active) {
+							for (int c2 = 0; c2 < m_cameras.size(); c2++) {
+								const Point point = m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->camera_projection[c2];
+								
+								if (m_cameras[c2]->getForegroundImage().at<uchar>(point) == 0) {
+									m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = false;
+								}
+							}
+						}
+						// If it's not active, check if it should be active
+						else {
+							bool active = true;
+							for (int c2 = 0; c2 < m_cameras.size(); c2++) {
+								const Point point = m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->camera_projection[c2];
+								if (m_cameras[c2]->getForegroundImage().at<uchar>(point) == 0) {
+									active = false;
+									break;
+								}
+							}
+							if (active) {
+								m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = true;
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// -------------------------------------------------------------------------------------------------------------------------
@@ -265,8 +307,6 @@ void Reconstructor::update()
 				const Point point = m_visible_voxels[i]->camera_projection[c];
 				if (foreground.at<uchar>(point) == 0) {
 					m_visible_voxels[i]->active = false;
-					m_visible_voxels.erase(m_visible_voxels.begin() + i);
-					i--;
 				}
 			}
 		}
@@ -280,7 +320,7 @@ void Reconstructor::update()
 			for (int y = 0; y < new_pixels.rows; y++) for (int x = 0; x < new_pixels.cols; x++) {
 				if (new_pixels.at<uchar>(y, x) == 255) {
 
-					// For every voxel corersponding to that pixel
+					// For every voxel corresponding to that pixel
 					for (int v = 0; v < m_voxel_pointers[c][(y * m_plane_size.width) + x].size(); v++) {
 
 						// If it's not active, check if it should be active
@@ -295,11 +335,19 @@ void Reconstructor::update()
 							}
 							if (active) {
 								m_voxel_pointers[c][(y * m_plane_size.width) + x][v]->active = true;
-								m_visible_voxels.push_back(m_voxel_pointers[c][(y * m_plane_size.width) + x][v]);
 							}
 						}
 					}
 				}
+			}
+		}
+		
+		m_visible_voxels.clear();
+		for (int v = 0; v < (int)m_voxels_amount; ++v) {
+			Voxel* voxel = m_voxels[v];
+
+			if (voxel->active) {
+				m_visible_voxels.push_back(voxel);
 			}
 		}
 	}
